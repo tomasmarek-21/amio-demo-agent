@@ -1,7 +1,7 @@
 # AMIO Analytics Agent
 
-Local, read-only PostHog analytics chat powered by Azure OpenAI Responses API
-and PostHog's official MCP server.
+Local, read-only business analytics chat powered by Azure OpenAI Responses API
+and the official PostHog and Stripe MCP servers.
 
 ## Requirements
 
@@ -9,6 +9,8 @@ and PostHog's official MCP server.
 - npm
 - Azure OpenAI resource with a `gpt-5-mini` deployment
 - PostHog personal API key created with the **MCP Server** preset
+- Stripe live MCP access enabled by an account administrator
+- Stripe production restricted API key with only required `Read` permissions
 
 ## Configuration
 
@@ -27,6 +29,8 @@ Fill these values:
 - `POSTHOG_PROJECT_ID` — visible in PostHog project settings or URL.
 - `POSTHOG_ORGANIZATION_ID` — optional; leave it empty when the project ID is
   supplied.
+- `STRIPE_API_KEY` — production restricted key beginning with `rk_live_`.
+  A standard Stripe account needs no separate account or organization ID.
 - `DATABASE_URL` — local SQLite path.
 
 All credentials stay on the server. Do not prefix them with `NEXT_PUBLIC_`.
@@ -52,7 +56,13 @@ The PostHog MCP URL enforces:
 - a fixed project ID (and optionally an organization ID),
 - all read-only PostHog feature groups.
 
-Azure receives at most 25 tool calls per response, a 4,000 output-token limit,
+The Stripe integration imports only 13 explicitly allowlisted read operations
+for account information, balances, coupons, customers, disputes, invoices,
+payments, prices, products, subscriptions, resource search, and documentation
+search. The restricted Stripe key provides a second, authoritative read-only
+boundary.
+
+Azure receives at most 30 tool calls per response, a 4,000 output-token limit,
 and a 90-second application deadline. Stored tool arguments, outputs, and
 errors are redacted and truncated. Sessions never share conversation memory.
 
@@ -67,16 +77,17 @@ npm run build
 ```
 
 The E2E test uses a deterministic fake provider and an isolated temporary
-SQLite database. It does not call Azure or PostHog.
+SQLite database. It does not call Azure, PostHog, or Stripe.
 
-Run the opt-in live read-only test only after `.env.local` is configured:
+Run opt-in live read-only tests only after `.env.local` is configured:
 
 ```bash
 RUN_LIVE_POSTHOG_SMOKE=true npm run test:live
+RUN_LIVE_STRIPE_SMOKE=true npm run test:live:stripe
 ```
 
-The live script prints status labels, tool names, and the final answer. It does
-not print API keys or raw visitor identifiers.
+The live scripts print status labels, tool names, and the final answer. They do
+not print API keys, raw visitor identifiers, or customer records.
 
 ## Manual acceptance questions
 
@@ -85,6 +96,9 @@ not print API keys or raw visitor identifiers.
 3. Analyzuj další pohyb lidí, kteří přišli na get-demo page.
 4. Kde návštěvníci nejčastěji opouštějí web?
 5. A porovnej to s předchozím týdnem.
+6. Kolik máme aktivních Stripe subscriptions a v jakých měnách?
+7. Jaké je měsíční recurring revenue podle měny?
+8. Porovnej nové platící zákazníky ve Stripe s návštěvností pricing page.
 
 For ambiguous concepts such as “new visitor” or “exit,” the answer should
 state the definition used or ask one concise clarification.

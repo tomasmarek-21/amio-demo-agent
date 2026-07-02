@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
-    "test:live": "tsx scripts/posthog-smoke.ts"
+    "test:live": "tsx scripts/posthog-smoke.ts",
+    "test:live:stripe": "tsx scripts/stripe-smoke.ts"
   },
   "keywords": [],
   "author": "",
