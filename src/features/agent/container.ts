@@ -11,6 +11,7 @@ import {
 } from "./azure-responses-provider";
 import { createPostHogMcpTool } from "./posthog-capability";
 import { FakeAgentProvider } from "./fake-agent-provider";
+import { createStripeMcpTool } from "./stripe-capability";
 
 const env = getServerEnv();
 
@@ -39,6 +40,9 @@ if (env.AGENT_PROVIDER === "fake") {
           apiKey: env.POSTHOG_API_KEY,
           organizationId: env.POSTHOG_ORGANIZATION_ID,
           projectId: env.POSTHOG_PROJECT_ID,
+        }),
+        createStripeMcpTool({
+          apiKey: env.STRIPE_API_KEY,
         }),
       ],
     },

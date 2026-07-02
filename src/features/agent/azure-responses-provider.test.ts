@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentEvent } from "./types";
 import { AzureResponsesProvider } from "./azure-responses-provider";
+import { ANALYTICS_INSTRUCTIONS } from "./instructions";
 import { createPostHogMcpTool } from "./posthog-capability";
 import { createStripeMcpTool } from "./stripe-capability";
 
@@ -44,6 +45,14 @@ async function collect(iterable: AsyncIterable<AgentEvent>) {
 }
 
 describe("AzureResponsesProvider", () => {
+  it("keeps Stripe read-only and chooses evidence by source", () => {
+    expect(ANALYTICS_INSTRUCTIONS).toContain("Stripe");
+    expect(ANALYTICS_INSTRUCTIONS).toContain("PostHog");
+    expect(ANALYTICS_INSTRUCTIONS).toContain(
+      "create, update, cancel, refund, or delete",
+    );
+  });
+
   it("normalizes MCP and text stream events", async () => {
     const create = vi.fn().mockResolvedValue(fakeStream());
     const provider = new AzureResponsesProvider(
