@@ -24,8 +24,9 @@ Fill these values:
 - `AZURE_OPENAI_DEPLOYMENT` — Azure deployment name, normally `gpt-5-mini`.
 - `POSTHOG_API_KEY` — project-scoped personal API key using the MCP Server
   preset.
-- `POSTHOG_ORGANIZATION_ID` — visible in PostHog organization settings or URL.
 - `POSTHOG_PROJECT_ID` — visible in PostHog project settings or URL.
+- `POSTHOG_ORGANIZATION_ID` — optional; leave it empty when the project ID is
+  supplied.
 - `DATABASE_URL` — local SQLite path.
 
 All credentials stay on the server. Do not prefix them with `NEXT_PUBLIC_`.
@@ -48,10 +49,10 @@ The PostHog MCP URL enforces:
 
 - `mode=cli` for token-efficient dynamic tool discovery,
 - `readonly=true`,
-- fixed organization and project IDs,
-- only `data_schema`, `sql`, and `insights` feature groups.
+- a fixed project ID (and optionally an organization ID),
+- all read-only PostHog feature groups.
 
-Azure receives at most 12 tool calls per response, a 4,000 output-token limit,
+Azure receives at most 25 tool calls per response, a 4,000 output-token limit,
 and a 90-second application deadline. Stored tool arguments, outputs, and
 errors are redacted and truncated. Sessions never share conversation memory.
 

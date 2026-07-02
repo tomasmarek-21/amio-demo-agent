@@ -25,6 +25,15 @@ describe("parseServerEnv", () => {
     ).toThrow(/POSTHOG_PROJECT_ID/);
   });
 
+  it("accepts a missing PostHog organization when the project is pinned", () => {
+    expect(
+      parseServerEnv({ ...valid, POSTHOG_ORGANIZATION_ID: "" }),
+    ).toMatchObject({
+      POSTHOG_ORGANIZATION_ID: undefined,
+      POSTHOG_PROJECT_ID: "project-1",
+    });
+  });
+
   it("accepts the fake test provider without production secrets", () => {
     expect(
       parseServerEnv({

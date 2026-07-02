@@ -77,7 +77,7 @@ describe("AzureResponsesProvider", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "gpt-5-mini",
-        max_tool_calls: 12,
+        max_tool_calls: 25,
         max_output_tokens: 4000,
         parallel_tool_calls: false,
         previous_response_id: "resp-previous",

@@ -11,7 +11,10 @@ const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
     AZURE_OPENAI_API_KEY: z.string().min(1),
     AZURE_OPENAI_DEPLOYMENT: z.string().min(1),
     POSTHOG_API_KEY: z.string().min(1),
-    POSTHOG_ORGANIZATION_ID: z.string().min(1),
+    POSTHOG_ORGANIZATION_ID: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
     POSTHOG_PROJECT_ID: z.string().min(1),
   }),
   commonEnv.extend({
