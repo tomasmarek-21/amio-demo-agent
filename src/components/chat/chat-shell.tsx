@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ToolTrace } from "@/features/chat/types";
 import type { ChatSession, SessionDetail } from "@/features/chat/types";
 import {
@@ -16,6 +16,7 @@ import { SessionSidebar } from "./session-sidebar";
 export function ChatShell() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const activeIdRef = useRef<string | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
@@ -34,13 +35,16 @@ export function ChatShell() {
   }, []);
 
   async function selectSession(id: string) {
+    activeIdRef.current = id;
     setActiveId(id);
-    setDetail(await getSession(id));
+    setDetail(null);
     setPendingUser(null);
     setStreamingText("");
     setStreamingTraces([]);
     setStatus(null);
     setError(null);
+    const selected = await getSession(id);
+    if (activeIdRef.current === id) setDetail(selected);
   }
 
   async function newSession() {
@@ -60,6 +64,7 @@ export function ChatShell() {
       if (!sessionId) {
         const session = await createSession();
         sessionId = session.id;
+        activeIdRef.current = session.id;
         setActiveId(session.id);
         setSessions((current) => [session, ...current]);
       }
@@ -87,12 +92,16 @@ export function ChatShell() {
         }
         if (event.type === "error") throw new Error(event.message);
         if (event.type === "completed") {
-          setDetail(await getSession(sessionId));
-          setSessions(await listSessions());
-          setPendingUser(null);
-          setStreamingText("");
-          setStreamingTraces([]);
-          setStatus(null);
+          const refreshed = await getSession(sessionId);
+          const refreshedSessions = await listSessions();
+          setSessions(refreshedSessions);
+          if (activeIdRef.current === sessionId) {
+            setDetail(refreshed);
+            setPendingUser(null);
+            setStreamingText("");
+            setStreamingTraces([]);
+            setStatus(null);
+          }
         }
       }
     } catch (cause) {

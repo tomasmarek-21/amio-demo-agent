@@ -13,12 +13,27 @@ const valid = {
 
 describe("parseServerEnv", () => {
   it("accepts a complete server configuration", () => {
-    expect(parseServerEnv(valid).AZURE_OPENAI_DEPLOYMENT).toBe("gpt-5-mini");
+    expect(parseServerEnv(valid)).toMatchObject({
+      AGENT_PROVIDER: "azure",
+      AZURE_OPENAI_DEPLOYMENT: "gpt-5-mini",
+    });
   });
 
   it("rejects a missing PostHog project", () => {
     expect(() =>
       parseServerEnv({ ...valid, POSTHOG_PROJECT_ID: "" }),
     ).toThrow(/POSTHOG_PROJECT_ID/);
+  });
+
+  it("accepts the fake test provider without production secrets", () => {
+    expect(
+      parseServerEnv({
+        AGENT_PROVIDER: "fake",
+        DATABASE_URL: "./data/e2e.sqlite",
+      }),
+    ).toEqual({
+      AGENT_PROVIDER: "fake",
+      DATABASE_URL: "./data/e2e.sqlite",
+    });
   });
 });
