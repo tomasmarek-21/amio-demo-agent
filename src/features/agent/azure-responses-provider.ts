@@ -47,19 +47,33 @@ export class AzureResponsesProvider implements AgentProvider {
 
     let failedCalls = 0;
     const startedCalls = new Map<string, number>();
+    const itemSources = new Map<string, string>();
 
     try {
       for await (const event of stream) {
         const type = stringValue(event.type);
+        if (type === "response.output_item.added") {
+          const item = recordValue(event.item);
+          const itemId = stringValue(item.id);
+          const serverLabel = stringValue(item.server_label);
+          if (itemId && serverLabel) itemSources.set(itemId, serverLabel);
+          continue;
+        }
         if (type === "response.mcp_list_tools.in_progress") {
-          const source = sourceLocation(stringValue(event.server_label));
+          const source = sourceLocation(
+            stringValue(event.server_label) ||
+              itemSources.get(stringValue(event.item_id)) ||
+              "",
+          );
           yield { type: "status", label: `Načítám nástroje ${source}` };
           continue;
         }
         if (type === "response.mcp_call.in_progress") {
           const itemId = stringValue(event.item_id);
           if (itemId) startedCalls.set(itemId, Date.now());
-          const source = sourceLocation(stringValue(event.server_label));
+          const source = sourceLocation(
+            stringValue(event.server_label) || itemSources.get(itemId) || "",
+          );
           yield { type: "status", label: `Analyzuji data ${source}` };
           continue;
         }

@@ -36,12 +36,12 @@ Read-only access is enforced in three layers:
 1. The Stripe restricted key grants only `Read` access to the resources needed
    for financial analysis. All other resources remain `None`.
 2. The Responses API MCP configuration uses an explicit `allowed_tools`
-   allowlist containing only Stripe read operations:
-   `get_stripe_account_info`, `retrieve_balance`, `list_coupons`,
-   `list_customers`, `list_disputes`, `list_invoices`,
-   `list_payment_intents`, `list_prices`, `list_products`,
-   `list_subscriptions`, `search_stripe_resources`,
-   `fetch_stripe_resources`, and `search_stripe_documentation`.
+   allowlist containing only the read operations exposed by Stripe's current
+   production MCP server: `search_stripe_documentation`,
+   `get_stripe_account_info`, `search_stripe_resources`,
+   `fetch_stripe_resources`, `stripe_api_search`, `stripe_api_details`, and
+   `stripe_api_read`. The mutation executor `stripe_api_write` is never
+   imported into model context.
 3. Agent instructions explicitly prohibit all Stripe mutations and require
    aggregate answers that avoid exposing unnecessary customer information.
 

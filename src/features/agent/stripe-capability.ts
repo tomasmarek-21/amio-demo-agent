@@ -1,17 +1,11 @@
 export const STRIPE_READ_ONLY_TOOLS = [
+  "search_stripe_documentation",
   "get_stripe_account_info",
-  "retrieve_balance",
-  "list_coupons",
-  "list_customers",
-  "list_disputes",
-  "list_invoices",
-  "list_payment_intents",
-  "list_prices",
-  "list_products",
-  "list_subscriptions",
   "search_stripe_resources",
   "fetch_stripe_resources",
-  "search_stripe_documentation",
+  "stripe_api_search",
+  "stripe_api_details",
+  "stripe_api_read",
 ] as const;
 
 export interface StripeCapabilityConfig {

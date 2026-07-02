@@ -56,11 +56,11 @@ The PostHog MCP URL enforces:
 - a fixed project ID (and optionally an organization ID),
 - all read-only PostHog feature groups.
 
-The Stripe integration imports only 13 explicitly allowlisted read operations
-for account information, balances, coupons, customers, disputes, invoices,
-payments, prices, products, subscriptions, resource search, and documentation
-search. The restricted Stripe key provides a second, authoritative read-only
-boundary.
+The Stripe integration imports only seven explicitly allowlisted read
+operations: account information, documentation search, resource search and
+fetch, API operation discovery, API operation details, and generic GET
+execution. The write executor is never imported. The restricted Stripe key
+provides a second, authoritative read-only boundary.
 
 Azure receives at most 30 tool calls per response, a 4,000 output-token limit,
 and a 90-second application deadline. Stored tool arguments, outputs, and

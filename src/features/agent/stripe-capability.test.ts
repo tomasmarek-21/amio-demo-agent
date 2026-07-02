@@ -15,11 +15,8 @@ it("exposes only Stripe read operations", () => {
     require_approval: "never",
     allowed_tools: STRIPE_READ_ONLY_TOOLS,
   });
-  expect(STRIPE_READ_ONLY_TOOLS).toContain("list_subscriptions");
-  expect(STRIPE_READ_ONLY_TOOLS).toContain("retrieve_balance");
-  expect(
-    STRIPE_READ_ONLY_TOOLS.some((name) =>
-      /^(create|update|cancel|finalize|refund)/.test(name),
-    ),
-  ).toBe(false);
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_search");
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_details");
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_read");
+  expect(STRIPE_READ_ONLY_TOOLS).not.toContain("stripe_api_write");
 });

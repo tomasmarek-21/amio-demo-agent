@@ -7,15 +7,27 @@ import { createStripeMcpTool } from "./stripe-capability";
 
 async function* fakeStream() {
   yield {
-    type: "response.mcp_list_tools.in_progress",
-    item_id: "list-1",
-    server_label: "stripe",
+    type: "response.output_item.added",
+    item: {
+      id: "list-1",
+      type: "mcp_list_tools",
+      server_label: "stripe",
+    },
   };
   yield {
-    type: "response.mcp_call.in_progress",
-    item_id: "call-1",
-    server_label: "stripe",
+    type: "response.mcp_list_tools.in_progress",
+    item_id: "list-1",
   };
+  yield {
+    type: "response.output_item.added",
+    item: {
+      id: "call-1",
+      type: "mcp_call",
+      server_label: "stripe",
+      name: "list_subscriptions",
+    },
+  };
+  yield { type: "response.mcp_call.in_progress", item_id: "call-1" };
   yield { type: "response.output_text.delta", delta: "42 visitors" };
   yield {
     type: "response.output_item.done",

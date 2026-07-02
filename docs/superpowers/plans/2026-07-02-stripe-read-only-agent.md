@@ -144,13 +144,10 @@ it("exposes only Stripe read operations", () => {
     require_approval: "never",
     allowed_tools: STRIPE_READ_ONLY_TOOLS,
   });
-  expect(STRIPE_READ_ONLY_TOOLS).toContain("list_subscriptions");
-  expect(STRIPE_READ_ONLY_TOOLS).toContain("retrieve_balance");
-  expect(
-    STRIPE_READ_ONLY_TOOLS.some((name) =>
-      /^(create|update|cancel|finalize|refund)/.test(name),
-    ),
-  ).toBe(false);
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_search");
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_details");
+  expect(STRIPE_READ_ONLY_TOOLS).toContain("stripe_api_read");
+  expect(STRIPE_READ_ONLY_TOOLS).not.toContain("stripe_api_write");
 });
 ```
 
@@ -170,19 +167,13 @@ Create `src/features/agent/stripe-capability.ts`:
 
 ```ts
 export const STRIPE_READ_ONLY_TOOLS = [
+  "search_stripe_documentation",
   "get_stripe_account_info",
-  "retrieve_balance",
-  "list_coupons",
-  "list_customers",
-  "list_disputes",
-  "list_invoices",
-  "list_payment_intents",
-  "list_prices",
-  "list_products",
-  "list_subscriptions",
   "search_stripe_resources",
   "fetch_stripe_resources",
-  "search_stripe_documentation",
+  "stripe_api_search",
+  "stripe_api_details",
+  "stripe_api_read",
 ] as const;
 
 export interface StripeCapabilityConfig {
@@ -247,8 +238,8 @@ Give the fake MCP events `server_label: "stripe"` and make the completed item:
 {
   type: "mcp_call",
   server_label: "stripe",
-  name: "list_subscriptions",
-  arguments: '{"limit":10}',
+  name: "stripe_api_read",
+  arguments: '{"stripe_api_operation_id":"GetSubscriptions","parameters":{"limit":10}}',
   output: '{"data":[]}',
   status: "completed",
   error: null,
@@ -265,7 +256,7 @@ expect(events).toContainEqual({
 expect(events).toContainEqual(
   expect.objectContaining({
     type: "tool_trace",
-    toolName: "stripe:list_subscriptions",
+    toolName: "stripe:stripe_api_read",
   }),
 );
 expect(create).toHaveBeenCalledWith(
@@ -516,7 +507,7 @@ Document:
 
 - `STRIPE_API_KEY` must be a production `rk_live_` restricted key;
 - Stripe live MCP access must be enabled by an administrator;
-- only the 13 explicitly listed read tools are imported;
+- only the seven explicitly listed read tools are imported;
 - no Stripe account ID is required for a standard account;
 - the agent now supports PostHog-only, Stripe-only, and cross-source questions;
 - the live test command is:
@@ -636,5 +627,5 @@ Jaké máme ve Stripe aktivní subscriptiony a jaký je jejich měsíční recur
 ```
 
 Expected: the UI streams source-specific status, shows sanitized
-`stripe:list_subscriptions` evidence, and returns a read-only answer with a
+`stripe:stripe_api_read` evidence, and returns a read-only answer with a
 date range, currency, and limitations.
