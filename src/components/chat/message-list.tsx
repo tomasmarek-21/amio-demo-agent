@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { SessionDetail } from "@/features/chat/types";
+import type { SessionDetail, ToolTrace } from "@/features/chat/types";
+import { ToolTracePanel } from "./tool-trace";
 
 interface Props {
   detail: SessionDetail | null;
@@ -8,6 +9,7 @@ interface Props {
   streamingText: string;
   status: string | null;
   error: string | null;
+  streamingTraces: ToolTrace[];
 }
 
 export function MessageList({
@@ -16,6 +18,7 @@ export function MessageList({
   streamingText,
   status,
   error,
+  streamingTraces,
 }: Props) {
   const empty =
     !detail?.messages.length && !pendingUser && !streamingText && !error;
@@ -33,24 +36,33 @@ export function MessageList({
             </p>
           </div>
         )}
-        {detail?.messages.map((message) => (
-          <article
-            key={message.id}
-            className={
-              message.role === "user"
-                ? "ml-auto max-w-[80%] rounded-2xl bg-emerald-500 px-4 py-3 text-slate-950"
-                : "max-w-none rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4 text-slate-100"
-            }
-          >
-            {message.role === "assistant" ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
-              </ReactMarkdown>
-            ) : (
-              message.content
-            )}
-          </article>
-        ))}
+        {detail?.messages.map((message) => {
+          const traces =
+            detail.evidence.find(
+              (item) => item.assistantMessageId === message.id,
+            )?.traces ?? [];
+          return (
+            <article
+              key={message.id}
+              className={
+                message.role === "user"
+                  ? "ml-auto max-w-[80%] rounded-2xl bg-emerald-500 px-4 py-3 text-slate-950"
+                  : "max-w-none rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4 text-slate-100"
+              }
+            >
+              {message.role === "assistant" ? (
+                <>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.content}
+                  </ReactMarkdown>
+                  <ToolTracePanel traces={traces} />
+                </>
+              ) : (
+                message.content
+              )}
+            </article>
+          );
+        })}
         {pendingUser && (
           <article className="ml-auto max-w-[80%] rounded-2xl bg-emerald-500 px-4 py-3 text-slate-950">
             {pendingUser}
@@ -59,9 +71,12 @@ export function MessageList({
         {(streamingText || status) && (
           <article className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4 text-slate-100">
             {streamingText ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {streamingText}
-              </ReactMarkdown>
+              <>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {streamingText}
+                </ReactMarkdown>
+                <ToolTracePanel traces={streamingTraces} />
+              </>
             ) : (
               <p className="text-sm text-slate-400">{status}</p>
             )}

@@ -102,8 +102,6 @@ export function ChatShell() {
     }
   }
 
-  void streamingTraces;
-
   return (
     <main className="flex min-h-screen flex-col bg-slate-950 text-slate-100 md:h-screen md:flex-row">
       <SessionSidebar
@@ -119,6 +117,7 @@ export function ChatShell() {
           streamingText={streamingText}
           status={status}
           error={error}
+          streamingTraces={streamingTraces}
         />
         <MessageComposer disabled={running} onSubmit={submit} />
       </section>
