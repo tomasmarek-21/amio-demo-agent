@@ -8,6 +8,7 @@ const valid = {
   POSTHOG_API_KEY: "phx_secret",
   POSTHOG_ORGANIZATION_ID: "org-1",
   POSTHOG_PROJECT_ID: "project-1",
+  STRIPE_API_KEY: "rk_live_example",
   DATABASE_URL: "./data/agent.sqlite",
 };
 
@@ -32,6 +33,15 @@ describe("parseServerEnv", () => {
       POSTHOG_ORGANIZATION_ID: undefined,
       POSTHOG_PROJECT_ID: "project-1",
     });
+  });
+
+  it("requires a production restricted Stripe key", () => {
+    expect(() =>
+      parseServerEnv({ ...valid, STRIPE_API_KEY: "sk_live_secret" }),
+    ).toThrow(/STRIPE_API_KEY/);
+    expect(() =>
+      parseServerEnv({ ...valid, STRIPE_API_KEY: "rk_test_secret" }),
+    ).toThrow(/STRIPE_API_KEY/);
   });
 
   it("accepts the fake test provider without production secrets", () => {

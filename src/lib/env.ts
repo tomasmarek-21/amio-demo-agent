@@ -16,6 +16,10 @@ const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
       z.string().min(1).optional(),
     ),
     POSTHOG_PROJECT_ID: z.string().min(1),
+    STRIPE_API_KEY: z.string().regex(
+      /^rk_live_/,
+      "STRIPE_API_KEY must be a production restricted key",
+    ),
   }),
   commonEnv.extend({
     AGENT_PROVIDER: z.literal("fake"),
