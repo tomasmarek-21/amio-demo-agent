@@ -34,11 +34,13 @@ if (env.AGENT_PROVIDER === "fake") {
     openai as unknown as ResponsesClientLike,
     {
       deployment: env.AZURE_OPENAI_DEPLOYMENT,
-      mcpTool: createPostHogMcpTool({
-        apiKey: env.POSTHOG_API_KEY,
-        organizationId: env.POSTHOG_ORGANIZATION_ID,
-        projectId: env.POSTHOG_PROJECT_ID,
-      }),
+      mcpTools: [
+        createPostHogMcpTool({
+          apiKey: env.POSTHOG_API_KEY,
+          organizationId: env.POSTHOG_ORGANIZATION_ID,
+          projectId: env.POSTHOG_PROJECT_ID,
+        }),
+      ],
     },
   );
   model = env.AZURE_OPENAI_DEPLOYMENT;

@@ -1,6 +1,7 @@
 import { ANALYTICS_INSTRUCTIONS } from "./instructions";
 import type { createPostHogMcpTool } from "./posthog-capability";
 import { redact } from "./redaction";
+import type { createStripeMcpTool } from "./stripe-capability";
 import type {
   AgentEvent,
   AgentProvider,
@@ -20,7 +21,10 @@ export interface ResponsesClientLike {
 
 export interface AzureResponsesProviderConfig {
   deployment: string;
-  mcpTool: ReturnType<typeof createPostHogMcpTool>;
+  mcpTools: Array<
+    | ReturnType<typeof createPostHogMcpTool>
+    | ReturnType<typeof createStripeMcpTool>
+  >;
 }
 
 export class AzureResponsesProvider implements AgentProvider {
@@ -48,13 +52,15 @@ export class AzureResponsesProvider implements AgentProvider {
       for await (const event of stream) {
         const type = stringValue(event.type);
         if (type === "response.mcp_list_tools.in_progress") {
-          yield { type: "status", label: "Načítám PostHog nástroje" };
+          const source = sourceLocation(stringValue(event.server_label));
+          yield { type: "status", label: `Načítám nástroje ${source}` };
           continue;
         }
         if (type === "response.mcp_call.in_progress") {
           const itemId = stringValue(event.item_id);
           if (itemId) startedCalls.set(itemId, Date.now());
-          yield { type: "status", label: "Analyzuji data v PostHogu" };
+          const source = sourceLocation(stringValue(event.server_label));
+          yield { type: "status", label: `Analyzuji data ${source}` };
           continue;
         }
         if (type === "response.output_text.delta") {
@@ -74,7 +80,7 @@ export class AzureResponsesProvider implements AgentProvider {
           if (failedCalls > 2) {
             yield {
               type: "error",
-              message: "PostHog dotaz selhal více než dvakrát.",
+              message: "MCP dotaz selhal více než dvakrát.",
             };
             return;
           }
@@ -113,11 +119,11 @@ export class AzureResponsesProvider implements AgentProvider {
       instructions: ANALYTICS_INSTRUCTIONS,
       input: input.userMessage,
       previous_response_id: input.previousResponseId ?? undefined,
-      tools: [this.config.mcpTool],
+      tools: this.config.mcpTools,
       stream: true,
       store: true,
       parallel_tool_calls: false,
-      max_tool_calls: 25,
+      max_tool_calls: 30,
       max_output_tokens: 4_000,
     };
     const delays = [0, 250, 750];
@@ -144,15 +150,23 @@ function normalizeToolTrace(
   const id = stringValue(item.id);
   const startedAt = startedCalls.get(id);
   const error = nullableString(item.error);
+  const serverLabel = stringValue(item.server_label);
+  const toolName = stringValue(item.name) || "unknown";
   return {
     type: "tool_trace",
-    toolName: stringValue(item.name) || "unknown",
+    toolName: serverLabel ? `${serverLabel}:${toolName}` : toolName,
     arguments: redact(stringValue(item.arguments)),
     resultSummary: item.output ? redact(stringValue(item.output)) : null,
     durationMs: startedAt ? Date.now() - startedAt : null,
     status: item.status === "failed" || error ? "failed" : "completed",
     error: error ? redact(error) : null,
   };
+}
+
+function sourceLocation(serverLabel: string) {
+  if (serverLabel === "stripe") return "ve Stripe";
+  if (serverLabel === "posthog") return "v PostHogu";
+  return "v připojeném zdroji";
 }
 
 function eventError(event: StreamEvent) {

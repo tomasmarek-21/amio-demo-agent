@@ -2,18 +2,28 @@ import { describe, expect, it, vi } from "vitest";
 import type { AgentEvent } from "./types";
 import { AzureResponsesProvider } from "./azure-responses-provider";
 import { createPostHogMcpTool } from "./posthog-capability";
+import { createStripeMcpTool } from "./stripe-capability";
 
 async function* fakeStream() {
-  yield { type: "response.mcp_list_tools.in_progress", item_id: "list-1" };
-  yield { type: "response.mcp_call.in_progress", item_id: "call-1" };
+  yield {
+    type: "response.mcp_list_tools.in_progress",
+    item_id: "list-1",
+    server_label: "stripe",
+  };
+  yield {
+    type: "response.mcp_call.in_progress",
+    item_id: "call-1",
+    server_label: "stripe",
+  };
   yield { type: "response.output_text.delta", delta: "42 visitors" };
   yield {
     type: "response.output_item.done",
     item: {
       type: "mcp_call",
-      name: "execute-sql",
-      arguments: '{"query":"SELECT 42"}',
-      output: '{"rows":[{"visitors":42}]}',
+      server_label: "stripe",
+      name: "list_subscriptions",
+      arguments: '{"limit":10}',
+      output: '{"data":[]}',
       status: "completed",
       error: null,
     },
@@ -40,11 +50,14 @@ describe("AzureResponsesProvider", () => {
       { responses: { create } },
       {
         deployment: "gpt-5-mini",
-        mcpTool: createPostHogMcpTool({
-          apiKey: "secret",
-          organizationId: "org",
-          projectId: "project",
-        }),
+        mcpTools: [
+          createPostHogMcpTool({
+            apiKey: "posthog-secret",
+            organizationId: "org",
+            projectId: "project",
+          }),
+          createStripeMcpTool({ apiKey: "rk_live_secret" }),
+        ],
       },
     );
 
@@ -59,12 +72,12 @@ describe("AzureResponsesProvider", () => {
     );
 
     expect(events).toEqual([
-      { type: "status", label: "Načítám PostHog nástroje" },
-      { type: "status", label: "Analyzuji data v PostHogu" },
+      { type: "status", label: "Načítám nástroje ve Stripe" },
+      { type: "status", label: "Analyzuji data ve Stripe" },
       { type: "text_delta", delta: "42 visitors" },
       expect.objectContaining({
         type: "tool_trace",
-        toolName: "execute-sql",
+        toolName: "stripe:list_subscriptions",
         status: "completed",
       }),
       {
@@ -77,7 +90,11 @@ describe("AzureResponsesProvider", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "gpt-5-mini",
-        max_tool_calls: 25,
+        tools: expect.arrayContaining([
+          expect.objectContaining({ server_label: "posthog" }),
+          expect.objectContaining({ server_label: "stripe" }),
+        ]),
+        max_tool_calls: 30,
         max_output_tokens: 4000,
         parallel_tool_calls: false,
         previous_response_id: "resp-previous",
@@ -99,11 +116,13 @@ describe("AzureResponsesProvider", () => {
       { responses: { create: vi.fn().mockResolvedValue(failures()) } },
       {
         deployment: "gpt-5-mini",
-        mcpTool: createPostHogMcpTool({
-          apiKey: "secret",
-          organizationId: "org",
-          projectId: "project",
-        }),
+        mcpTools: [
+          createPostHogMcpTool({
+            apiKey: "secret",
+            organizationId: "org",
+            projectId: "project",
+          }),
+        ],
       },
     );
 
@@ -116,7 +135,7 @@ describe("AzureResponsesProvider", () => {
       ),
     ).toContainEqual({
       type: "error",
-      message: "PostHog dotaz selhal více než dvakrát.",
+      message: "MCP dotaz selhal více než dvakrát.",
     });
   });
 });
