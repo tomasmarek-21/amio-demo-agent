@@ -1,0 +1,133 @@
+import type { ChatRepository } from "@/features/chat/repository";
+import { redact } from "./redaction";
+import type { AgentEvent, AgentProvider } from "./types";
+
+export class AgentRunner {
+  constructor(
+    private readonly repository: ChatRepository,
+    private readonly provider: AgentProvider,
+    private readonly model: string,
+    private readonly timeoutMs = 90_000,
+  ) {}
+
+  async *run(
+    sessionId: string,
+    userText: string,
+    parentSignal?: AbortSignal,
+  ): AsyncIterable<AgentEvent> {
+    const message = userText.trim();
+    if (!message) {
+      yield { type: "error", message: "Zpráva nesmí být prázdná." };
+      return;
+    }
+
+    const session = await this.repository.getSession(sessionId);
+    if (!session) {
+      yield { type: "error", message: "Konverzace nebyla nalezena." };
+      return;
+    }
+
+    const userMessage = await this.repository.addMessage(
+      sessionId,
+      "user",
+      message,
+    );
+    const runId = await this.repository.createRun(
+      sessionId,
+      userMessage.id,
+      this.model,
+    );
+    const controller = new AbortController();
+    const timeoutError = new Error("Analýza překročila časový limit.");
+    const timeout = setTimeout(
+      () => controller.abort(timeoutError),
+      this.timeoutMs,
+    );
+    const abortFromParent = () =>
+      controller.abort(parentSignal?.reason ?? new Error("Požadavek byl zrušen."));
+    parentSignal?.addEventListener("abort", abortFromParent, { once: true });
+
+    let assistantText = "";
+    let toolCallsCount = 0;
+    let completed = false;
+
+    try {
+      const events = this.provider.run(
+        {
+          userMessage: message,
+          previousResponseId: session.lastResponseId,
+        },
+        controller.signal,
+      );
+
+      for await (const event of events) {
+        if (event.type === "text_delta") {
+          assistantText += event.delta;
+          yield event;
+          continue;
+        }
+        if (event.type === "tool_trace") {
+          toolCallsCount += 1;
+          await this.repository.addToolCall({
+            runId,
+            toolName: event.toolName,
+            sanitizedArguments: event.arguments,
+            resultSummary: event.resultSummary,
+            durationMs: event.durationMs,
+            status: event.status,
+            error: event.error,
+          });
+          yield event;
+          continue;
+        }
+        if (event.type === "error") {
+          throw new Error(event.message);
+        }
+        if (event.type === "completed") {
+          const assistantMessage = await this.repository.addMessage(
+            sessionId,
+            "assistant",
+            assistantText,
+          );
+          await this.repository.updateSessionResponse(
+            sessionId,
+            event.responseId,
+          );
+          await this.repository.completeRun(runId, {
+            responseId: event.responseId,
+            assistantMessageId: assistantMessage.id,
+            inputTokens: event.inputTokens,
+            outputTokens: event.outputTokens,
+            toolCallsCount,
+          });
+          completed = true;
+          yield event;
+          return;
+        }
+        yield event;
+      }
+
+      if (!completed) {
+        throw new Error("Azure ukončilo odpověď bez dokončeného výsledku.");
+      }
+    } catch (error) {
+      const message =
+        controller.signal.reason === timeoutError
+          ? timeoutError.message
+          : readableError(error);
+      await this.repository.failRun(runId, message);
+      yield { type: "error", message };
+    } finally {
+      clearTimeout(timeout);
+      parentSignal?.removeEventListener("abort", abortFromParent);
+    }
+  }
+}
+
+function readableError(error: unknown) {
+  return redact(
+    error instanceof Error
+      ? error.message
+      : "Analýzu se nepodařilo dokončit.",
+  );
+}
