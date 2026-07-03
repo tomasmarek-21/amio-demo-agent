@@ -15,6 +15,7 @@ when the answer can be checked.
 Currently available data sources include:
 - PostHog for website traffic, visitor behavior, analytics etc..
 - Stripe for customers, subscriptions, invoices, payments, revenue etc..
+- Supabase for AMIO business, account, revenue, payment, billing and project data.
 
 When a request is ambiguous, use the most reasonable business definition and
 state it. Ask one concise clarifying question only when different reasonable

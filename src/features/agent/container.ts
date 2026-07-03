@@ -12,6 +12,7 @@ import {
 import { createPostHogMcpTool } from "./posthog-capability";
 import { FakeAgentProvider } from "./fake-agent-provider";
 import { createStripeMcpTool } from "./stripe-capability";
+import { createSupabaseMcpTool } from "./supabase-capability";
 
 const env = getServerEnv();
 
@@ -27,6 +28,13 @@ if (env.AGENT_PROVIDER === "fake") {
   provider = new FakeAgentProvider();
   model = "fake-agent";
 } else {
+  if (
+    Boolean(env.SUPABASE_ACCESS_TOKEN) !== Boolean(env.SUPABASE_PROJECT_REF)
+  ) {
+    throw new Error(
+      "SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF must be configured together",
+    );
+  }
   const openai = new OpenAI({
     apiKey: env.AZURE_OPENAI_API_KEY,
     baseURL: `${env.AZURE_OPENAI_ENDPOINT.replace(/\/$/, "")}/openai/v1/`,
@@ -44,6 +52,14 @@ if (env.AGENT_PROVIDER === "fake") {
         createStripeMcpTool({
           apiKey: env.STRIPE_API_KEY,
         }),
+        ...(env.SUPABASE_ACCESS_TOKEN && env.SUPABASE_PROJECT_REF
+          ? [
+              createSupabaseMcpTool({
+                accessToken: env.SUPABASE_ACCESS_TOKEN,
+                projectRef: env.SUPABASE_PROJECT_REF,
+              }),
+            ]
+          : []),
       ],
     },
   );

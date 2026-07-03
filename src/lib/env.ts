@@ -20,6 +20,14 @@ const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
       /^rk_live_/,
       "STRIPE_API_KEY must be a production restricted key",
     ),
+    SUPABASE_ACCESS_TOKEN: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    SUPABASE_PROJECT_REF: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
   }),
   commonEnv.extend({
     AGENT_PROVIDER: z.literal("fake"),

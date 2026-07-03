@@ -2,6 +2,7 @@ import { ANALYTICS_INSTRUCTIONS } from "./instructions";
 import type { createPostHogMcpTool } from "./posthog-capability";
 import { redact } from "./redaction";
 import type { createStripeMcpTool } from "./stripe-capability";
+import type { createSupabaseMcpTool } from "./supabase-capability";
 import type {
   AgentEvent,
   AgentProvider,
@@ -24,6 +25,7 @@ export interface AzureResponsesProviderConfig {
   mcpTools: Array<
     | ReturnType<typeof createPostHogMcpTool>
     | ReturnType<typeof createStripeMcpTool>
+    | ReturnType<typeof createSupabaseMcpTool>
   >;
 }
 
@@ -183,6 +185,7 @@ function normalizeToolTrace(
 function sourceLocation(serverLabel: string) {
   if (serverLabel === "stripe") return "ve Stripe";
   if (serverLabel === "posthog") return "v PostHogu";
+  if (serverLabel === "supabase") return "v Supabase";
   return "v připojeném zdroji";
 }
 

@@ -1,7 +1,7 @@
 # AMIO Analytics Agent
 
 Local, read-only business analytics chat powered by Azure OpenAI Responses API
-and the official PostHog and Stripe MCP servers.
+and the official PostHog, Stripe, and Supabase MCP servers.
 
 ## Requirements
 
@@ -11,6 +11,7 @@ and the official PostHog and Stripe MCP servers.
 - PostHog personal API key created with the **MCP Server** preset
 - Stripe live MCP access enabled by an account administrator
 - Stripe production restricted API key with only required `Read` permissions
+- Supabase personal access token and production project ref
 
 ## Configuration
 
@@ -31,6 +32,9 @@ Fill these values:
   supplied.
 - `STRIPE_API_KEY` — production restricted key beginning with `rk_live_`.
   A standard Stripe account needs no separate account or organization ID.
+- `SUPABASE_ACCESS_TOKEN` — personal access token used for non-interactive
+  Supabase MCP authentication. This is not an anon or service-role key.
+- `SUPABASE_PROJECT_REF` — fixed Supabase Project ID from project settings.
 - `DATABASE_URL` — local SQLite path.
 
 All credentials stay on the server. Do not prefix them with `NEXT_PUBLIC_`.
@@ -62,8 +66,14 @@ fetch, API operation discovery, API operation details, and generic GET
 execution. The write executor is never imported. The restricted Stripe key
 provides a second, authoritative read-only boundary.
 
-Azure receives at most 30 tool calls per response, a 4,000 output-token limit,
-and a 90-second application deadline. Stored tool arguments, outputs, and
+The Supabase MCP URL is pinned to one project, enables `read_only=true`, and
+loads only the `database` feature group. Azure can discover only `list_tables`
+and `execute_sql`. Business definitions are loaded on demand from
+`public.agent_data_catalog`; run `docs/supabase-agent-data-catalog.sql` once in
+the Supabase SQL editor before using the source.
+
+Azure receives at most 30 tool calls per response, a 16,000 output-token limit,
+and a five-minute application deadline. Stored tool arguments, outputs, and
 errors are redacted and truncated. Sessions never share conversation memory.
 
 ## Verification
