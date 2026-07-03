@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  DEFAULT_REASONING_EFFORT,
   DEFAULT_AGENT_MODEL,
   isAgentModel,
+  isReasoningEffort,
+  MODEL_REASONING_EFFORTS,
   type AgentModel,
+  type ReasoningEffort,
 } from "@/features/agent/models";
 import type { ToolTrace } from "@/features/chat/types";
 import type { ChatSession, SessionDetail } from "@/features/chat/types";
@@ -21,6 +25,8 @@ import { SessionSidebar } from "./session-sidebar";
 export function ChatShell() {
   const [selectedModel, setSelectedModel] =
     useState<AgentModel>(DEFAULT_AGENT_MODEL);
+  const [reasoningEffort, setReasoningEffort] =
+    useState<ReasoningEffort>(DEFAULT_REASONING_EFFORT);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
@@ -36,6 +42,16 @@ export function ChatShell() {
     const storedModel = window.localStorage.getItem("amio-agent-model");
     if (storedModel && isAgentModel(storedModel)) {
       setSelectedModel(storedModel);
+      const storedEffort = window.localStorage.getItem(
+        `amio-agent-reasoning-${storedModel}`,
+      );
+      if (
+        storedEffort &&
+        isReasoningEffort(storedEffort) &&
+        MODEL_REASONING_EFFORTS[storedModel].includes(storedEffort)
+      ) {
+        setReasoningEffort(storedEffort);
+      }
     }
     void listSessions()
       .then(async (items) => {
@@ -83,6 +99,9 @@ export function ChatShell() {
         sessionId,
         message,
         selectedModel,
+        MODEL_REASONING_EFFORTS[selectedModel].length
+          ? reasoningEffort
+          : null,
       )) {
         if (event.type === "status") setStatus(event.label);
         if (event.type === "text_delta") {
@@ -146,9 +165,28 @@ export function ChatShell() {
         <MessageComposer
           disabled={running}
           model={selectedModel}
+          reasoningEffort={reasoningEffort}
+          reasoningOptions={MODEL_REASONING_EFFORTS[selectedModel]}
           onModelChange={(model) => {
             setSelectedModel(model);
             window.localStorage.setItem("amio-agent-model", model);
+            const storedEffort = window.localStorage.getItem(
+              `amio-agent-reasoning-${model}`,
+            );
+            setReasoningEffort(
+              storedEffort &&
+                isReasoningEffort(storedEffort) &&
+                MODEL_REASONING_EFFORTS[model].includes(storedEffort)
+                ? storedEffort
+                : DEFAULT_REASONING_EFFORT,
+            );
+          }}
+          onReasoningChange={(effort) => {
+            setReasoningEffort(effort);
+            window.localStorage.setItem(
+              `amio-agent-reasoning-${selectedModel}`,
+              effort,
+            );
           }}
           onSubmit={submit}
         />

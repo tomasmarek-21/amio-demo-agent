@@ -1,4 +1,5 @@
 import type { ChatRepository } from "@/features/chat/repository";
+import type { ReasoningEffort } from "./models";
 import { redact } from "./redaction";
 import type { AgentEvent, AgentProvider } from "./types";
 
@@ -15,6 +16,7 @@ export class AgentRunner {
     userText: string,
     parentSignal?: AbortSignal,
     selectedModel = this.model,
+    reasoningEffort?: ReasoningEffort,
   ): AsyncIterable<AgentEvent> {
     const message = userText.trim();
     if (!message) {
@@ -58,6 +60,7 @@ export class AgentRunner {
           userMessage: message,
           previousResponseId: session.lastResponseId,
           model: selectedModel,
+          reasoningEffort,
         },
         controller.signal,
       );

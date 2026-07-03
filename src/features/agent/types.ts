@@ -1,3 +1,5 @@
+import type { ReasoningEffort } from "./models";
+
 export type AgentEvent =
   | { type: "status"; label: string }
   | { type: "text_delta"; delta: string }
@@ -22,6 +24,7 @@ export interface AgentProviderInput {
   userMessage: string;
   previousResponseId: string | null;
   model?: string;
+  reasoningEffort?: ReasoningEffort;
 }
 
 export interface AgentProvider {

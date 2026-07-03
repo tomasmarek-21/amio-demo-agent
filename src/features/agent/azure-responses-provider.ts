@@ -139,6 +139,9 @@ export class AzureResponsesProvider implements AgentProvider {
       parallel_tool_calls: false,
       max_tool_calls: 30,
       max_output_tokens: 16_000,
+      ...(input.reasoningEffort
+        ? { reasoning: { effort: input.reasoningEffort } }
+        : {}),
     };
     const delays = [0, 250, 750];
     let lastError: unknown;
