@@ -1,4 +1,5 @@
 import type { AgentEvent } from "@/features/agent/types";
+import type { AgentModel } from "@/features/agent/models";
 import type {
   ChatMessage,
   ChatSession,
@@ -51,11 +52,12 @@ export async function getSession(id: string): Promise<SessionDetail> {
 export async function* sendMessage(
   sessionId: string,
   message: string,
+  model: AgentModel,
 ): AsyncIterable<AgentEvent> {
   const response = await fetch(`/api/sessions/${sessionId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, model }),
   });
   if (!response.ok || !response.body) {
     throw new Error("Agentní odpověď se nepodařila spustit.");

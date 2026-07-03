@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_AGENT_MODEL,
+  isAgentModel,
+  type AgentModel,
+} from "@/features/agent/models";
 import type { ToolTrace } from "@/features/chat/types";
 import type { ChatSession, SessionDetail } from "@/features/chat/types";
 import {
@@ -14,6 +19,8 @@ import { MessageList } from "./message-list";
 import { SessionSidebar } from "./session-sidebar";
 
 export function ChatShell() {
+  const [selectedModel, setSelectedModel] =
+    useState<AgentModel>(DEFAULT_AGENT_MODEL);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
@@ -26,6 +33,10 @@ export function ChatShell() {
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
+    const storedModel = window.localStorage.getItem("amio-agent-model");
+    if (storedModel && isAgentModel(storedModel)) {
+      setSelectedModel(storedModel);
+    }
     void listSessions()
       .then(async (items) => {
         setSessions(items);
@@ -68,7 +79,11 @@ export function ChatShell() {
         setActiveId(session.id);
         setSessions((current) => [session, ...current]);
       }
-      for await (const event of sendMessage(sessionId, message)) {
+      for await (const event of sendMessage(
+        sessionId,
+        message,
+        selectedModel,
+      )) {
         if (event.type === "status") setStatus(event.label);
         if (event.type === "text_delta") {
           setStatus(null);
@@ -128,7 +143,15 @@ export function ChatShell() {
           error={error}
           streamingTraces={streamingTraces}
         />
-        <MessageComposer disabled={running} onSubmit={submit} />
+        <MessageComposer
+          disabled={running}
+          model={selectedModel}
+          onModelChange={(model) => {
+            setSelectedModel(model);
+            window.localStorage.setItem("amio-agent-model", model);
+          }}
+          onSubmit={submit}
+        />
       </section>
     </main>
   );

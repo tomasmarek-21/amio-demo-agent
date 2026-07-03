@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { agentRunner } from "@/features/agent/container";
+import { AGENT_MODEL_IDS } from "@/features/agent/models";
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(4_000),
+  model: z.enum(AGENT_MODEL_IDS),
 });
 
 interface Context {
@@ -29,6 +31,7 @@ export async function POST(request: Request, context: Context) {
           sessionId,
           parsed.data.message,
           request.signal,
+          parsed.data.model,
         )) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(event)}\n\n`),

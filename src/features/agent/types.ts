@@ -21,6 +21,7 @@ export type AgentEvent =
 export interface AgentProviderInput {
   userMessage: string;
   previousResponseId: string | null;
+  model?: string;
 }
 
 export interface AgentProvider {

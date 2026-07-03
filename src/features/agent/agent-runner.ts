@@ -14,6 +14,7 @@ export class AgentRunner {
     sessionId: string,
     userText: string,
     parentSignal?: AbortSignal,
+    selectedModel = this.model,
   ): AsyncIterable<AgentEvent> {
     const message = userText.trim();
     if (!message) {
@@ -35,7 +36,7 @@ export class AgentRunner {
     const runId = await this.repository.createRun(
       sessionId,
       userMessage.id,
-      this.model,
+      selectedModel,
     );
     const controller = new AbortController();
     const timeoutError = new Error("Analýza překročila časový limit.");
@@ -56,6 +57,7 @@ export class AgentRunner {
         {
           userMessage: message,
           previousResponseId: session.lastResponseId,
+          model: selectedModel,
         },
         controller.signal,
       );

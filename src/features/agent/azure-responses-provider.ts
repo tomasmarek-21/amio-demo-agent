@@ -129,7 +129,7 @@ export class AzureResponsesProvider implements AgentProvider {
     signal: AbortSignal,
   ): Promise<AsyncIterable<StreamEvent>> {
     const request = {
-      model: this.config.deployment,
+      model: input.model ?? this.config.deployment,
       instructions: ANALYTICS_INSTRUCTIONS,
       input: input.userMessage,
       previous_response_id: input.previousResponseId ?? undefined,
