@@ -138,7 +138,7 @@ export class AzureResponsesProvider implements AgentProvider {
       store: true,
       parallel_tool_calls: false,
       max_tool_calls: 30,
-      max_output_tokens: 4_000,
+      max_output_tokens: 16_000,
     };
     const delays = [0, 250, 750];
     let lastError: unknown;
