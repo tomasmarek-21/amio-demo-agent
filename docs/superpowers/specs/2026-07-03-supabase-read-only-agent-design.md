@@ -46,9 +46,7 @@ until Supabase is configured. Supabase MCP is enabled only when both exist.
 
 ## Catalog
 
-`public.agent_data_catalog` has one row per documented business table:
-`schema_name`, `table_name`, `description`, `row_grain`,
-`important_columns`, `relationships`, `usage_notes`, and `updated_at`.
-The bootstrap SQL inserts rows for the nine supplied tables without overwriting
-later edits.
-
+`public.agent_data_catalog` has one concise row per documented business table:
+`schema_name`, `table_name`, `description`, and `updated_at`. The description
+contains only non-obvious business meaning and caveats. The bootstrap SQL
+inserts rows for the nine supplied tables without overwriting later edits.

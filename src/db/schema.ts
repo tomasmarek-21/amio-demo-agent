@@ -54,3 +54,25 @@ export const toolCalls = sqliteTable("tool_calls", {
   error: text("error"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const notionConnections = sqliteTable("notion_connections", {
+  id: text("id").primaryKey(),
+  redirectUri: text("redirect_uri").notNull(),
+  clientId: text("client_id").notNull(),
+  clientSecret: text("client_secret"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: integer("access_token_expires_at", {
+    mode: "timestamp_ms",
+  }),
+  authorizedAt: integer("authorized_at", { mode: "timestamp_ms" }),
+  lastRefreshAt: integer("last_refresh_at", { mode: "timestamp_ms" }),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const notionOauthStates = sqliteTable("notion_oauth_states", {
+  state: text("state").primaryKey(),
+  codeVerifier: text("code_verifier").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+});

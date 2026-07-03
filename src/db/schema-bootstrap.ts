@@ -27,5 +27,15 @@ export function createSchema(sqlite: Database.Database) {
       status TEXT NOT NULL, error TEXT, created_at INTEGER NOT NULL,
       FOREIGN KEY (run_id) REFERENCES agent_runs(id)
     );
+    CREATE TABLE IF NOT EXISTS notion_connections (
+      id TEXT PRIMARY KEY, redirect_uri TEXT NOT NULL, client_id TEXT NOT NULL,
+      client_secret TEXT, access_token TEXT, refresh_token TEXT,
+      access_token_expires_at INTEGER, authorized_at INTEGER,
+      last_refresh_at INTEGER, updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS notion_oauth_states (
+      state TEXT PRIMARY KEY, code_verifier TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL, expires_at INTEGER NOT NULL
+    );
   `);
 }

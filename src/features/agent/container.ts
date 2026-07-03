@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { db } from "@/db/client";
 import { SqliteChatRepository } from "@/features/chat/sqlite-chat-repository";
 import { getServerEnv } from "@/lib/env";
+import { notionOAuthService } from "@/features/notion/container";
 import { AgentRunner } from "./agent-runner";
 import type { AgentProvider } from "./types";
 import {
@@ -10,6 +11,7 @@ import {
   type ResponsesClientLike,
 } from "./azure-responses-provider";
 import { createPostHogMcpTool } from "./posthog-capability";
+import { createNotionMcpTool } from "./notion-capability";
 import { FakeAgentProvider } from "./fake-agent-provider";
 import { createStripeMcpTool } from "./stripe-capability";
 import { createSupabaseMcpTool } from "./supabase-capability";
@@ -61,6 +63,15 @@ if (env.AGENT_PROVIDER === "fake") {
             ]
           : []),
       ],
+      getMcpTools: async () => {
+        try {
+          const accessToken =
+            await notionOAuthService.getValidAccessToken();
+          return accessToken ? [createNotionMcpTool(accessToken)] : [];
+        } catch {
+          return [];
+        }
+      },
     },
   );
   model = env.AZURE_OPENAI_DEPLOYMENT;

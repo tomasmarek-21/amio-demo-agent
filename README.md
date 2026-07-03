@@ -1,7 +1,7 @@
 # AMIO Analytics Agent
 
 Local, read-only business analytics chat powered by Azure OpenAI Responses API
-and the official PostHog, Stripe, and Supabase MCP servers.
+and the official PostHog, Stripe, Supabase, and Notion MCP servers.
 
 ## Requirements
 
@@ -12,6 +12,7 @@ and the official PostHog, Stripe, and Supabase MCP servers.
 - Stripe live MCP access enabled by an account administrator
 - Stripe production restricted API key with only required `Read` permissions
 - Supabase personal access token and production project ref
+- A Notion account with access to the desired company pages
 
 ## Configuration
 
@@ -72,6 +73,12 @@ and `execute_sql`. Business definitions are loaded on demand from
 `public.agent_data_catalog`; run `docs/supabase-agent-data-catalog.sql` once in
 the Supabase SQL editor before using the source.
 
+Notion is connected from the sidebar through user OAuth. Access and rotating
+refresh tokens are encrypted in local SQLite and refreshed automatically.
+Azure receives only the Notion `search` and `fetch` tools; page creation,
+updates, moves, and all other write operations are unavailable. The connection
+must be authorized again after at most 180 days or after 30 days of inactivity.
+
 Azure receives at most 30 tool calls per response, a 16,000 output-token limit,
 and a five-minute application deadline. Stored tool arguments, outputs, and
 errors are redacted and truncated. Sessions never share conversation memory.
@@ -87,7 +94,7 @@ npm run build
 ```
 
 The E2E test uses a deterministic fake provider and an isolated temporary
-SQLite database. It does not call Azure, PostHog, or Stripe.
+SQLite database. It does not call Azure, PostHog, Stripe, Supabase, or Notion.
 
 Run opt-in live read-only tests only after `.env.local` is configured:
 
@@ -109,6 +116,7 @@ not print API keys, raw visitor identifiers, or customer records.
 6. Kolik máme aktivních Stripe subscriptions a v jakých měnách?
 7. Jaké je měsíční recurring revenue podle měny?
 8. Porovnej nové platící zákazníky ve Stripe s návštěvností pricing page.
+9. Najdi v Notionu dokumentaci k onboardingu zákazníků, shrň ji a přidej odkazy.
 
 For ambiguous concepts such as “new visitor” or “exit,” the answer should
 state the definition used or ask one concise clarification.

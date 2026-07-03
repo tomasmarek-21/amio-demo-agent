@@ -18,6 +18,7 @@ import {
   listSessions,
   sendMessage,
 } from "@/lib/chat-api";
+import { getNotionStatus } from "@/lib/notion-api";
 import { MessageComposer } from "./message-composer";
 import { MessageList } from "./message-list";
 import { SessionSidebar } from "./session-sidebar";
@@ -37,8 +38,22 @@ export function ChatShell() {
   const [streamingTraces, setStreamingTraces] = useState<ToolTrace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [notionConnected, setNotionConnected] =
+    useState<boolean | null>(null);
 
   useEffect(() => {
+    const notionResult = new URLSearchParams(window.location.search).get(
+      "notion",
+    );
+    if (notionResult === "error") {
+      setError("Notion se nepodařilo připojit. Zkus OAuth znovu.");
+    }
+    if (notionResult) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    void getNotionStatus()
+      .then((result) => setNotionConnected(result.connected))
+      .catch(() => setNotionConnected(false));
     const storedModel = window.localStorage.getItem("amio-agent-model");
     if (storedModel && isAgentModel(storedModel)) {
       setSelectedModel(storedModel);
@@ -150,6 +165,10 @@ export function ChatShell() {
       <SessionSidebar
         sessions={sessions}
         activeId={activeId}
+        notionConnected={notionConnected}
+        onConnectNotion={() => {
+          window.location.assign("/api/integrations/notion/connect");
+        }}
         onSelect={(id) => void selectSession(id)}
         onCreate={() => void newSession()}
       />

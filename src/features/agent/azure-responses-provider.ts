@@ -1,4 +1,5 @@
 import { ANALYTICS_INSTRUCTIONS } from "./instructions";
+import type { createNotionMcpTool } from "./notion-capability";
 import type { createPostHogMcpTool } from "./posthog-capability";
 import { redact } from "./redaction";
 import type { createStripeMcpTool } from "./stripe-capability";
@@ -22,12 +23,15 @@ export interface ResponsesClientLike {
 
 export interface AzureResponsesProviderConfig {
   deployment: string;
-  mcpTools: Array<
-    | ReturnType<typeof createPostHogMcpTool>
-    | ReturnType<typeof createStripeMcpTool>
-    | ReturnType<typeof createSupabaseMcpTool>
-  >;
+  mcpTools: ConfiguredMcpTool[];
+  getMcpTools?: () => Promise<ConfiguredMcpTool[]>;
 }
+
+type ConfiguredMcpTool =
+  | ReturnType<typeof createNotionMcpTool>
+  | ReturnType<typeof createPostHogMcpTool>
+  | ReturnType<typeof createStripeMcpTool>
+  | ReturnType<typeof createSupabaseMcpTool>;
 
 export class AzureResponsesProvider implements AgentProvider {
   constructor(
@@ -130,12 +134,15 @@ export class AzureResponsesProvider implements AgentProvider {
     input: AgentProviderInput,
     signal: AbortSignal,
   ): Promise<AsyncIterable<StreamEvent>> {
+    const dynamicMcpTools = this.config.getMcpTools
+      ? await this.config.getMcpTools()
+      : [];
     const request = {
       model: input.model ?? this.config.deployment,
       instructions: ANALYTICS_INSTRUCTIONS,
       input: input.userMessage,
       previous_response_id: input.previousResponseId ?? undefined,
-      tools: this.config.mcpTools,
+      tools: [...this.config.mcpTools, ...dynamicMcpTools],
       stream: true,
       store: true,
       parallel_tool_calls: false,
@@ -183,6 +190,7 @@ function normalizeToolTrace(
 }
 
 function sourceLocation(serverLabel: string) {
+  if (serverLabel === "notion") return "v Notionu";
   if (serverLabel === "stripe") return "ve Stripe";
   if (serverLabel === "posthog") return "v PostHogu";
   if (serverLabel === "supabase") return "v Supabase";

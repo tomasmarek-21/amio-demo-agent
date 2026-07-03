@@ -15,7 +15,7 @@
 **Files:**
 - Create: `docs/supabase-agent-data-catalog.sql`
 
-- [ ] Define `public.agent_data_catalog` with a composite primary key and updated timestamp.
+- [ ] Define the compact `public.agent_data_catalog` with table name, description, and updated timestamp.
 - [ ] Seed the nine supplied public tables with initial semantic descriptions.
 - [ ] Use `ON CONFLICT DO NOTHING` so rerunning the bootstrap never overwrites manual edits.
 
@@ -44,4 +44,3 @@
 - [ ] Add a Supabase-specific progress label.
 - [ ] Document credentials, restrictions, and catalog setup.
 - [ ] Run `npm run typecheck`, `git diff --check`, and `npm run build`; do not run tests per user request.
-
