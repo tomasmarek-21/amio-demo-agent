@@ -75,9 +75,11 @@ the Supabase SQL editor before using the source.
 
 Notion is connected from the sidebar through user OAuth. Access and rotating
 refresh tokens are encrypted in local SQLite and refreshed automatically.
-Azure receives only the Notion `search` and `fetch` tools; page creation,
-updates, moves, and all other write operations are unavailable. The connection
-must be authorized again after at most 180 days or after 30 days of inactivity.
+Azure receives only Notion read-only tools such as `notion-search`,
+`notion-fetch`, data-source query, comments, users, teams, and attachment
+download. Page creation, updates, moves, comments creation, database changes,
+and all other write operations are unavailable. The connection must be
+authorized again after at most 180 days or after 30 days of inactivity.
 
 Azure receives at most 30 tool calls per response, a 16,000 output-token limit,
 and a five-minute application deadline. Stored tool arguments, outputs, and

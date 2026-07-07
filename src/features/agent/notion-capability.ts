@@ -1,4 +1,15 @@
-export const NOTION_READ_ONLY_TOOLS = ["search", "fetch"] as const;
+export const NOTION_READ_ONLY_TOOLS = [
+  "notion-search",
+  "notion-fetch",
+  "notion-download-attachment",
+  "notion-get-comments",
+  "notion-get-teams",
+  "notion-get-users",
+  "notion-query-data-sources",
+  "notion-query-database-view",
+  "notion-query-meeting-notes",
+  "notion-get-async-task",
+] as const;
 
 export function createNotionMcpTool(accessToken: string) {
   return {

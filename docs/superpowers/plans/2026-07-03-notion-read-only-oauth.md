@@ -47,7 +47,7 @@
 
 - [ ] Resolve optional MCP tools before each agent request.
 - [ ] Add Notion only with a valid token.
-- [ ] Allow only `search` and `fetch`.
+- [ ] Allow only read-only Notion tools, including `notion-search` and `notion-fetch`.
 - [ ] Tell the model to fetch selected results and cite direct Notion links.
 
 ### Task 4: Add the sidebar status control
@@ -70,4 +70,3 @@
 - [ ] Document Notion access, OAuth lifecycle, and read-only tools.
 - [ ] Run `npm run typecheck`, `git diff --check`, and `npm run build`.
 - [ ] Do not run automated tests per user request.
-

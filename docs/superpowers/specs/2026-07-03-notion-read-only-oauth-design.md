@@ -32,7 +32,8 @@ refresh, or after explicit revocation.
 The existing Azure Responses provider resolves optional MCP tools immediately
 before each request. When Notion is connected, it refreshes the OAuth token when
 needed and adds `https://mcp.notion.com/mcp` with only the OpenAI-compatible
-`search` and `fetch` tools. When disconnected, Notion is omitted entirely.
+read-only Notion tools, including `notion-search` and `notion-fetch`. When
+disconnected, Notion is omitted entirely.
 
 The model searches with a natural-language query, fetches only promising
 results by URL or ID, and includes direct links to source pages in its answer.
@@ -50,4 +51,3 @@ errors redirect to the app with a disconnected status.
 Per user instruction, no new automated tests are required. TypeScript and the
 production build must pass. Manual acceptance covers connect, status, search,
 fetch, links, token refresh behavior, and reconnect.
-
