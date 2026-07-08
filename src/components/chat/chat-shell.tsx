@@ -10,6 +10,10 @@ import {
   type AgentModel,
   type ReasoningEffort,
 } from "@/features/agent/models";
+import {
+  DEFAULT_SESSION_TITLE,
+  titleFromFirstMessage,
+} from "@/features/chat/session-title";
 import type { ToolTrace } from "@/features/chat/types";
 import type { ChatSession, SessionDetail } from "@/features/chat/types";
 import {
@@ -110,6 +114,14 @@ export function ChatShell() {
         setActiveId(session.id);
         setSessions((current) => [session, ...current]);
       }
+      const optimisticTitle = titleFromFirstMessage(message);
+      setSessions((current) =>
+        current.map((session) =>
+          session.id === sessionId && session.title === DEFAULT_SESSION_TITLE
+            ? { ...session, title: optimisticTitle, updatedAt: new Date() }
+            : session,
+        ),
+      );
       for await (const event of sendMessage(
         sessionId,
         message,

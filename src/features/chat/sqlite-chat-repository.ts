@@ -13,13 +13,17 @@ import type {
   ChatSession,
   SessionDetail,
 } from "./types";
+import {
+  DEFAULT_SESSION_TITLE,
+  titleFromFirstMessage,
+} from "./session-title";
 
 type Database = BetterSQLite3Database<typeof schema>;
 
 export class SqliteChatRepository implements ChatRepository {
   constructor(private readonly database: Database) {}
 
-  async createSession(title = "Nová konverzace"): Promise<ChatSession> {
+  async createSession(title = DEFAULT_SESSION_TITLE): Promise<ChatSession> {
     const now = new Date();
     const session: ChatSession = {
       id: randomUUID(),
@@ -74,6 +78,8 @@ export class SqliteChatRepository implements ChatRepository {
     role: ChatRole,
     content: string,
   ): Promise<ChatMessage> {
+    const shouldSetTitle =
+      role === "user" && (await this.shouldSetTitleFromFirstMessage(sessionId));
     const message: ChatMessage = {
       id: randomUUID(),
       sessionId,
@@ -82,7 +88,10 @@ export class SqliteChatRepository implements ChatRepository {
       createdAt: new Date(),
     };
     await this.database.insert(messages).values(message);
-    await this.touchSession(sessionId);
+    await this.touchSession(
+      sessionId,
+      shouldSetTitle ? titleFromFirstMessage(content) : undefined,
+    );
     return message;
   }
 
@@ -137,10 +146,25 @@ export class SqliteChatRepository implements ChatRepository {
     });
   }
 
-  private async touchSession(sessionId: string) {
+  private async shouldSetTitleFromFirstMessage(sessionId: string) {
+    const [session] = await this.database
+      .select({ title: sessions.title })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+    if (session?.title !== DEFAULT_SESSION_TITLE) return false;
+    const [existingMessage] = await this.database
+      .select({ id: messages.id })
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId))
+      .limit(1);
+    return !existingMessage;
+  }
+
+  private async touchSession(sessionId: string, title?: string) {
     await this.database
       .update(sessions)
-      .set({ updatedAt: new Date() })
+      .set({ ...(title ? { title } : {}), updatedAt: new Date() })
       .where(eq(sessions.id, sessionId));
   }
 }
