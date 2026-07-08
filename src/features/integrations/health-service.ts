@@ -1,5 +1,10 @@
 import "server-only";
 import { notionOAuthService } from "@/features/notion/container";
+import {
+  AMIO_DEMO_BOT_ID,
+  type AmioCapabilityConfig,
+} from "@/features/agent/amio-conversations-capability";
+import { AmioConversationsApi } from "@/features/amio-conversations/amio-conversations-api";
 import { createPostHogMcpTool } from "@/features/agent/posthog-capability";
 import {
   STRIPE_READ_ONLY_TOOLS,
@@ -25,12 +30,61 @@ type HealthBase = Omit<
 export async function getIntegrationsHealth(): Promise<IntegrationsHealth> {
   const lastCheckedAt = new Date().toISOString();
   const connectors = await Promise.all([
+    amioHealth(lastCheckedAt),
     notionHealth(lastCheckedAt),
     posthogHealth(lastCheckedAt),
     stripeHealth(lastCheckedAt),
     supabaseHealth(lastCheckedAt),
   ]);
   return { connectors };
+}
+
+async function amioHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
+  const apiKey = emptyToUndefined(process.env.AMIO_API_KEY);
+  const baseUrl =
+    emptyToUndefined(process.env.AMIO_API_BASE_URL) ??
+    "https://chatbot-engine.amio.io";
+  const base = connector("amio", "AMIO", Boolean(apiKey), "env");
+  if (!apiKey) {
+    return status(
+      base,
+      "misconfigured",
+      "Chybí AMIO_API_KEY v .env.local.",
+      lastCheckedAt,
+    );
+  }
+
+  try {
+    const api = new AmioConversationsApi({
+      apiKey,
+      baseUrl,
+      botId: AMIO_DEMO_BOT_ID,
+    });
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    await api.searchConversations(
+      {
+        dateFrom: oneHourAgo.toISOString(),
+        dateTo: now.toISOString(),
+        maxConversations: 1,
+      },
+      undefined,
+      1,
+    );
+    return status(
+      base,
+      "connected",
+      "AMIO analytics API je dostupné.",
+      lastCheckedAt,
+    );
+  } catch (error) {
+    return status(
+      base,
+      "disconnected",
+      readableError(error),
+      lastCheckedAt,
+    );
+  }
 }
 
 async function notionHealth(lastCheckedAt: string): Promise<ConnectorHealth> {

@@ -1,4 +1,9 @@
-export type ConnectorId = "notion" | "posthog" | "stripe" | "supabase";
+export type ConnectorId =
+  | "amio"
+  | "notion"
+  | "posthog"
+  | "stripe"
+  | "supabase";
 
 export type ConnectorStatus =
   | "checking"
