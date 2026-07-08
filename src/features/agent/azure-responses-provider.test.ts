@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { zodResponsesFunction } from "openai/helpers/zod";
 import type { AgentEvent } from "./types";
-import { AzureResponsesProvider } from "./azure-responses-provider";
+import {
+  AzureResponsesProvider,
+  buildResponseTools,
+} from "./azure-responses-provider";
 import { ANALYTICS_INSTRUCTIONS } from "./instructions";
 import { createPostHogMcpTool } from "./posthog-capability";
 import { createStripeMcpTool } from "./stripe-capability";
@@ -50,6 +55,47 @@ async function* fakeStream() {
   };
 }
 
+async function* functionToolStream() {
+  yield {
+    type: "response.output_item.added",
+    item: {
+      id: "fn-1",
+      type: "function_call",
+      name: "amio-analyze-conversations-batch",
+    },
+  };
+  yield {
+    type: "response.output_item.done",
+    item: {
+      id: "fn-1",
+      type: "function_call",
+      call_id: "call-1",
+      name: "amio-analyze-conversations-batch",
+      arguments:
+        '{"dateFrom":"2026-07-01T00:00:00.000Z","dateTo":"2026-07-02T00:00:00.000Z","includeSystemEvents":false}',
+      status: "completed",
+    },
+  };
+  yield {
+    type: "response.completed",
+    response: {
+      id: "resp-tool-1",
+      usage: { input_tokens: 80, output_tokens: 10 },
+    },
+  };
+}
+
+async function* postToolTextStream() {
+  yield { type: "response.output_text.delta", delta: "Shrnuti hotovo" };
+  yield {
+    type: "response.completed",
+    response: {
+      id: "resp-tool-2",
+      usage: { input_tokens: 20, output_tokens: 12 },
+    },
+  };
+}
+
 async function collect(iterable: AsyncIterable<AgentEvent>) {
   const events: AgentEvent[] = [];
   for await (const event of iterable) events.push(event);
@@ -60,9 +106,7 @@ describe("AzureResponsesProvider", () => {
   it("keeps Stripe read-only and chooses evidence by source", () => {
     expect(ANALYTICS_INSTRUCTIONS).toContain("Stripe");
     expect(ANALYTICS_INSTRUCTIONS).toContain("PostHog");
-    expect(ANALYTICS_INSTRUCTIONS).toContain(
-      "create, update, cancel, refund, or delete",
-    );
+    expect(ANALYTICS_INSTRUCTIONS).toContain("Never create, update");
   });
 
   it("normalizes MCP and text stream events", async () => {
@@ -116,9 +160,136 @@ describe("AzureResponsesProvider", () => {
           expect.objectContaining({ server_label: "stripe" }),
         ]),
         max_tool_calls: 30,
-        max_output_tokens: 4000,
+        max_output_tokens: 16000,
         parallel_tool_calls: false,
         previous_response_id: "resp-previous",
+      }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("builds response tools with both MCP and internal function tools", () => {
+    const functionTool = zodResponsesFunction({
+      name: "amio-search-conversations",
+      description: "demo",
+      parameters: z.object({
+        dateFrom: z.string(),
+        dateTo: z.string(),
+      }),
+      function: async () => ({ ok: true }),
+    });
+
+    const tools = buildResponseTools({
+      staticMcpTools: [
+        createPostHogMcpTool({
+          apiKey: "secret",
+          organizationId: "org",
+          projectId: "project",
+        }),
+      ],
+      dynamicMcpTools: [],
+      functionTools: [functionTool],
+    });
+
+    expect(tools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ server_label: "posthog" }),
+        expect.objectContaining({
+          type: "function",
+          name: "amio-search-conversations",
+        }),
+      ]),
+    );
+  });
+
+  it("executes internal function tools and continues the response loop", async () => {
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce(functionToolStream())
+      .mockResolvedValueOnce(postToolTextStream());
+    const functionTool = zodResponsesFunction({
+      name: "amio-analyze-conversations-batch",
+      description: "demo",
+      parameters: z.object({
+        dateFrom: z.string(),
+        dateTo: z.string(),
+        includeSystemEvents: z.boolean(),
+      }),
+      function: async () => ({
+        contactIds: ["c1"],
+        summary: {
+          conversationCount: 1,
+          loadedConversationCount: 1,
+          failedConversationCount: 0,
+          dateFrom: "2026-07-01T00:00:00.000Z",
+          dateTo: "2026-07-02T00:00:00.000Z",
+        },
+        transcripts: [],
+        aggregate: {
+          conversationCount: 1,
+          totalMessageCount: 0,
+          userMessageCount: 0,
+          assistantMessageCount: 0,
+          buttonClickCount: 0,
+          systemEventCount: 0,
+          conversationsWithButtonClicks: 0,
+          conversationsWithRemoteActions: 0,
+          messagesPerConversationAvg: 0,
+          outcomesBreakdown: {},
+          messageKindBreakdown: {},
+        },
+        truncated: {
+          conversationsTruncated: false,
+          omittedConversationCount: 0,
+        },
+        failedContactIds: [],
+        warnings: [],
+      }),
+    });
+    const provider = new AzureResponsesProvider(
+      { responses: { create } },
+      {
+        deployment: "gpt-5-mini",
+        mcpTools: [],
+        functionTools: [functionTool],
+      },
+    );
+
+    const events = await collect(
+      provider.run(
+        {
+          userMessage: "Najdi demo chat konverzace",
+          previousResponseId: null,
+        },
+        new AbortController().signal,
+      ),
+    );
+
+    expect(events).toEqual([
+      { type: "status", label: "Analyzuji data v AMIO konverzacích" },
+      expect.objectContaining({
+        type: "tool_trace",
+        toolName: "amio_conversations:amio-analyze-conversations-batch",
+        status: "completed",
+      }),
+      { type: "text_delta", delta: "Shrnuti hotovo" },
+      {
+        type: "completed",
+        responseId: "resp-tool-2",
+        inputTokens: 20,
+        outputTokens: 12,
+      },
+    ]);
+    expect(create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        previous_response_id: "resp-tool-1",
+        input: [
+          expect.objectContaining({
+            type: "function_call_output",
+            call_id: "call-1",
+          }),
+        ],
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );

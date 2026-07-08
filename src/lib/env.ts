@@ -28,6 +28,18 @@ const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
       (value) => (value === "" ? undefined : value),
       z.string().min(1).optional(),
     ),
+    AMIO_API_BASE_URL: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().url().optional(),
+    ),
+    AMIO_API_KEY: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    AMIO_MAX_CONVERSATIONS: z.preprocess(
+      (value) => (value === "" || value == null ? undefined : Number(value)),
+      z.number().int().positive().max(200).optional(),
+    ),
   }),
   commonEnv.extend({
     AGENT_PROVIDER: z.literal("fake"),

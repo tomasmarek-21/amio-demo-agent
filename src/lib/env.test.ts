@@ -20,6 +20,21 @@ describe("parseServerEnv", () => {
     });
   });
 
+  it("accepts optional AMIO analytics configuration", () => {
+    expect(
+      parseServerEnv({
+        ...valid,
+        AMIO_API_BASE_URL: "https://chatbot-engine.amio.io",
+        AMIO_API_KEY: "amio-secret",
+        AMIO_MAX_CONVERSATIONS: "50",
+      }),
+    ).toMatchObject({
+      AMIO_API_BASE_URL: "https://chatbot-engine.amio.io",
+      AMIO_API_KEY: "amio-secret",
+      AMIO_MAX_CONVERSATIONS: 50,
+    });
+  });
+
   it("rejects a missing PostHog project", () => {
     expect(() =>
       parseServerEnv({ ...valid, POSTHOG_PROJECT_ID: "" }),

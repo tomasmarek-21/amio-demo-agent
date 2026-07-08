@@ -1,7 +1,8 @@
 # AMIO Analytics Agent
 
 Local, read-only business analytics chat powered by Azure OpenAI Responses API
-and the official PostHog, Stripe, Supabase, and Notion MCP servers.
+and the official PostHog, Stripe, Supabase, and Notion MCP servers, plus a
+local read-only AMIO demo conversations capability.
 
 ## Requirements
 
@@ -36,6 +37,10 @@ Fill these values:
 - `SUPABASE_ACCESS_TOKEN` — personal access token used for non-interactive
   Supabase MCP authentication. This is not an anon or service-role key.
 - `SUPABASE_PROJECT_REF` — fixed Supabase Project ID from project settings.
+- `AMIO_API_BASE_URL` — optional override for the AMIO analytics base URL.
+  Leave the default production URL unless you intentionally use staging.
+- `AMIO_API_KEY` — bearer API key for read-only AMIO analytics access.
+- `AMIO_MAX_CONVERSATIONS` — server-side cap for one AMIO batch request.
 - `DATABASE_URL` — local SQLite path.
 
 All credentials stay on the server. Do not prefix them with `NEXT_PUBLIC_`.
@@ -85,6 +90,12 @@ Azure receives at most 30 tool calls per response, a 16,000 output-token limit,
 and a five-minute application deadline. Stored tool arguments, outputs, and
 errors are redacted and truncated. Sessions never share conversation memory.
 
+The AMIO conversations capability is pinned to the fixed demo bot
+`6950785430289573256`, requires explicit `dateFrom` and `dateTo`, and may cap
+only the number of conversations in a batch. It always loads the full message
+history for each selected conversation and can optionally omit system events
+from the returned transcripts.
+
 ## Verification
 
 ```bash
@@ -119,6 +130,9 @@ not print API keys, raw visitor identifiers, or customer records.
 7. Jaké je měsíční recurring revenue podle měny?
 8. Porovnej nové platící zákazníky ve Stripe s návštěvností pricing page.
 9. Najdi v Notionu dokumentaci k onboardingu zákazníků, shrň ji a přidej odkazy.
+10. Najdi demo chat konverzace za poslední týden a shrň nejčastější typy interakcí.
+11. Kolik z vybraných demo chat konverzací obsahovalo kliknutí na tlačítko?
+12. Vrať mi demo chat transcripty bez systémových eventů za včerejšek.
 
 For ambiguous concepts such as “new visitor” or “exit,” the answer should
 state the definition used or ask one concise clarification.

@@ -15,6 +15,10 @@ import { createNotionMcpTool } from "./notion-capability";
 import { FakeAgentProvider } from "./fake-agent-provider";
 import { createStripeMcpTool } from "./stripe-capability";
 import { createSupabaseMcpTool } from "./supabase-capability";
+import {
+  AMIO_DEMO_BOT_ID,
+  createAmioConversationsTools,
+} from "./amio-conversations-capability";
 
 const env = getServerEnv();
 
@@ -63,6 +67,15 @@ if (env.AGENT_PROVIDER === "fake") {
             ]
           : []),
       ],
+      functionTools: env.AMIO_API_KEY
+        ? createAmioConversationsTools({
+            apiKey: env.AMIO_API_KEY,
+            baseUrl:
+              env.AMIO_API_BASE_URL ?? "https://chatbot-engine.amio.io",
+            botId: AMIO_DEMO_BOT_ID,
+            maxConversations: env.AMIO_MAX_CONVERSATIONS ?? 50,
+          })
+        : [],
       getMcpTools: async () => {
         try {
           const accessToken =

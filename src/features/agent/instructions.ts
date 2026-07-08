@@ -14,6 +14,7 @@ when the answer can be checked.
 
 Currently available data sources include:
 - PostHog for website traffic, visitor behavior, analytics etc..
+- AMIO Conversations for demo chatbot transcript history, button clicks, and conversation-level analysis.
 - Stripe for customers, subscriptions, invoices, payments, revenue etc..
 - Supabase for AMIO business, account, revenue, payment, billing and project data.
 - Notion for internal company knowledge, processes, decisions and documentation.
