@@ -16,13 +16,14 @@ import {
 } from "@/features/chat/session-title";
 import type { ToolTrace } from "@/features/chat/types";
 import type { ChatSession, SessionDetail } from "@/features/chat/types";
+import type { ConnectorHealth } from "@/features/integrations/types";
 import {
   createSession,
   getSession,
   listSessions,
   sendMessage,
 } from "@/lib/chat-api";
-import { getNotionStatus } from "@/lib/notion-api";
+import { getIntegrationsStatus } from "@/lib/integrations-api";
 import { MessageComposer } from "./message-composer";
 import { MessageList } from "./message-list";
 import { SessionSidebar } from "./session-sidebar";
@@ -42,8 +43,8 @@ export function ChatShell() {
   const [streamingTraces, setStreamingTraces] = useState<ToolTrace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [notionConnected, setNotionConnected] =
-    useState<boolean | null>(null);
+  const [connectors, setConnectors] =
+    useState<ConnectorHealth[] | null>(null);
 
   useEffect(() => {
     const notionResult = new URLSearchParams(window.location.search).get(
@@ -55,9 +56,7 @@ export function ChatShell() {
     if (notionResult) {
       window.history.replaceState({}, "", window.location.pathname);
     }
-    void getNotionStatus()
-      .then((result) => setNotionConnected(result.connected))
-      .catch(() => setNotionConnected(false));
+    void refreshIntegrations();
     const storedModel = window.localStorage.getItem("amio-agent-model");
     if (storedModel && isAgentModel(storedModel)) {
       setSelectedModel(storedModel);
@@ -79,6 +78,15 @@ export function ChatShell() {
       })
       .catch((cause) => setError(readableError(cause)));
   }, []);
+
+  async function refreshIntegrations() {
+    try {
+      const result = await getIntegrationsStatus();
+      setConnectors(result.connectors);
+    } catch {
+      setConnectors([]);
+    }
+  }
 
   async function selectSession(id: string) {
     activeIdRef.current = id;
@@ -177,7 +185,8 @@ export function ChatShell() {
       <SessionSidebar
         sessions={sessions}
         activeId={activeId}
-        notionConnected={notionConnected}
+        connectors={connectors}
+        onRefreshIntegrations={() => void refreshIntegrations()}
         onConnectNotion={() => {
           window.location.assign("/api/integrations/notion/connect");
         }}
