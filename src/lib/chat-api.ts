@@ -1,3 +1,4 @@
+import { BASE_PATH } from "@/lib/base-path";
 import type { AgentEvent } from "@/features/agent/types";
 import type {
   AgentModel,
@@ -22,14 +23,14 @@ async function expectJson<T>(response: Response): Promise<T> {
 
 export async function listSessions(): Promise<ChatSession[]> {
   const body = await expectJson<{ sessions: SerializedSession[] }>(
-    await fetch("/api/sessions"),
+    await fetch(`${BASE_PATH}/api/sessions`),
   );
   return body.sessions.map(deserializeSession);
 }
 
 export async function createSession(): Promise<ChatSession> {
   const body = await expectJson<{ session: SerializedSession }>(
-    await fetch("/api/sessions", {
+    await fetch(`${BASE_PATH}/api/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
@@ -40,7 +41,7 @@ export async function createSession(): Promise<ChatSession> {
 
 export async function getSession(id: string): Promise<SessionDetail> {
   const body = await expectJson<{ session: SerializedDetail }>(
-    await fetch(`/api/sessions/${id}`),
+    await fetch(`${BASE_PATH}/api/sessions/${id}`),
   );
   return {
     ...deserializeSession(body.session),
@@ -58,7 +59,7 @@ export async function* sendMessage(
   model: AgentModel,
   reasoningEffort: ReasoningEffort | null,
 ): AsyncIterable<AgentEvent> {
-  const response = await fetch(`/api/sessions/${sessionId}/messages`, {
+  const response = await fetch(`${BASE_PATH}/api/sessions/${sessionId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, model, reasoningEffort }),

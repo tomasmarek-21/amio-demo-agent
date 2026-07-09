@@ -138,6 +138,7 @@ export function SessionSidebar({
 }
 
 const CONNECTOR_PLACEHOLDERS: ConnectorHealth[] = [
+  placeholder("amio", "AMIO Conversations"),
   placeholder("notion", "Notion"),
   placeholder("posthog", "PostHog"),
   placeholder("stripe", "Stripe"),
@@ -183,5 +184,12 @@ function ConnectorLogo({ id }: { id: ConnectorId }) {
   if (id === "stripe") {
     return <span className={`${classes} bg-indigo-500`}>S</span>;
   }
-  return <span className={`${classes} bg-emerald-500`}>SB</span>;
+  if (id === "supabase") {
+    return <span className={`${classes} bg-emerald-500`}>SB</span>;
+  }
+  return (
+    <span className={`${classes} bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)]`}>
+      AC
+    </span>
+  );
 }

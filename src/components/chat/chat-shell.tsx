@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BASE_PATH } from "@/lib/base-path";
 import {
   DEFAULT_REASONING_EFFORT,
   DEFAULT_AGENT_MODEL,
@@ -188,7 +189,7 @@ export function ChatShell() {
         connectors={connectors}
         onRefreshIntegrations={() => void refreshIntegrations()}
         onConnectNotion={() => {
-          window.location.assign("/api/integrations/notion/connect");
+          window.location.assign(`${BASE_PATH}/api/integrations/notion/connect`);
         }}
         onSelect={(id) => void selectSession(id)}
         onCreate={() => void newSession()}
