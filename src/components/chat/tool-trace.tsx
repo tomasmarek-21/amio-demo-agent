@@ -15,7 +15,7 @@ export function ToolTracePanel({ traces }: { traces: ToolTrace[] }) {
         onClick={() => setOpen((value) => !value)}
         className="text-xs font-medium text-[var(--amio-text-muted)] hover:text-[var(--amio-accent)]"
       >
-        Jak jsem k tomu došel ({traces.length})
+        How I got this answer ({traces.length})
       </button>
       {open && (
         <div className="mt-3 space-y-3">
@@ -37,14 +37,14 @@ export function ToolTracePanel({ traces }: { traces: ToolTrace[] }) {
                   {trace.durationMs !== null ? ` · ${trace.durationMs} ms` : ""}
                 </span>
               </div>
-              <p className="mt-3 text-[11px] text-[var(--amio-text-muted)]">Argumenty</p>
+              <p className="mt-3 text-[11px] text-[var(--amio-text-muted)]">Arguments</p>
               <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-[var(--amio-text)]">
                 {pretty(trace.sanitizedArguments)}
               </pre>
               {trace.resultSummary && (
                 <>
                   <p className="mt-3 text-[11px] text-[var(--amio-text-muted)]">
-                    Shrnutí výsledku
+                    Result summary
                   </p>
                   <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-[var(--amio-text)]">
                     {pretty(trace.resultSummary)}

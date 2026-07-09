@@ -49,7 +49,7 @@ async function amioHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "misconfigured",
-      "Chybí AMIO_API_KEY v .env.local.",
+      "Missing AMIO_API_KEY in .env.local.",
       lastCheckedAt,
     );
   }
@@ -74,7 +74,7 @@ async function amioHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "connected",
-      "AMIO analytics API je dostupné.",
+      "AMIO analytics API is available.",
       lastCheckedAt,
     );
   } catch (error) {
@@ -94,7 +94,7 @@ async function notionHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       token ? "connected" : "disconnected",
-      token ? "OAuth token je validní." : "Notion OAuth není připojený.",
+      token ? "OAuth token is valid." : "Notion OAuth is not connected.",
       lastCheckedAt,
     );
   } catch (error) {
@@ -120,7 +120,7 @@ async function posthogHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "misconfigured",
-      "Chybí POSTHOG_API_KEY nebo POSTHOG_PROJECT_ID v .env.local.",
+      "Missing POSTHOG_API_KEY or POSTHOG_PROJECT_ID in .env.local.",
       lastCheckedAt,
     );
   }
@@ -139,7 +139,7 @@ async function stripeHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "misconfigured",
-      "Chybí STRIPE_API_KEY v .env.local.",
+      "Missing STRIPE_API_KEY in .env.local.",
       lastCheckedAt,
     );
   }
@@ -147,7 +147,7 @@ async function stripeHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "misconfigured",
-      "STRIPE_API_KEY musí být produkční restricted key začínající rk_live_.",
+      "STRIPE_API_KEY must be a production restricted key starting with rk_live_.",
       lastCheckedAt,
     );
   }
@@ -174,7 +174,7 @@ async function supabaseHealth(lastCheckedAt: string): Promise<ConnectorHealth> {
     return status(
       base,
       "misconfigured",
-      "Chybí SUPABASE_ACCESS_TOKEN nebo SUPABASE_PROJECT_REF v .env.local.",
+      "Missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF in .env.local.",
       lastCheckedAt,
     );
   }
@@ -237,5 +237,5 @@ function emptyToUndefined(value: string | undefined) {
 }
 
 function readableError(error: unknown) {
-  return error instanceof Error ? error.message : "Health check selhal.";
+  return error instanceof Error ? error.message : "Health check failed.";
 }

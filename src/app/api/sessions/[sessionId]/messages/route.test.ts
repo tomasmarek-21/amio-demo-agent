@@ -11,7 +11,7 @@ vi.mock("@/features/agent/container", () => ({
 import { POST } from "./route";
 
 async function* events() {
-  yield { type: "status", label: "Analyzuji data v PostHogu" };
+  yield { type: "status", label: "Analyzing data in PostHog" };
   yield { type: "text_delta", delta: "42" };
   yield {
     type: "completed",

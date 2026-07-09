@@ -20,13 +20,13 @@ export class AgentRunner {
   ): AsyncIterable<AgentEvent> {
     const message = userText.trim();
     if (!message) {
-      yield { type: "error", message: "Zpráva nesmí být prázdná." };
+      yield { type: "error", message: "Message must not be empty." };
       return;
     }
 
     const session = await this.repository.getSession(sessionId);
     if (!session) {
-      yield { type: "error", message: "Konverzace nebyla nalezena." };
+      yield { type: "error", message: "Conversation was not found." };
       return;
     }
 
@@ -41,13 +41,13 @@ export class AgentRunner {
       selectedModel,
     );
     const controller = new AbortController();
-    const timeoutError = new Error("Analýza překročila časový limit.");
+    const timeoutError = new Error("Analysis exceeded the time limit.");
     const timeout = setTimeout(
       () => controller.abort(timeoutError),
       this.timeoutMs,
     );
     const abortFromParent = () =>
-      controller.abort(parentSignal?.reason ?? new Error("Požadavek byl zrušen."));
+      controller.abort(parentSignal?.reason ?? new Error("Request was cancelled."));
     parentSignal?.addEventListener("abort", abortFromParent, { once: true });
 
     let assistantText = "";
@@ -113,7 +113,7 @@ export class AgentRunner {
       }
 
       if (!completed) {
-        throw new Error("Azure ukončilo odpověď bez dokončeného výsledku.");
+        throw new Error("Azure ended the response without a completed result.");
       }
     } catch (error) {
       const message =
@@ -133,6 +133,6 @@ function readableError(error: unknown) {
   return redact(
     error instanceof Error
       ? error.message
-      : "Analýzu se nepodařilo dokončit.",
+      : "Failed to complete the analysis.",
   );
 }

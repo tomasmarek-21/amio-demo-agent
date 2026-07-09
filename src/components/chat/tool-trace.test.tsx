@@ -23,7 +23,7 @@ it("keeps sanitized tool evidence collapsed until requested", () => {
 
   expect(screen.queryByText(/SELECT count/)).not.toBeInTheDocument();
   fireEvent.click(
-    screen.getByRole("button", { name: /Jak jsem k tomu došel/ }),
+    screen.getByRole("button", { name: /How I got this answer/ }),
   );
   expect(screen.getByText(/SELECT count/)).toBeInTheDocument();
   expect(screen.getByText("execute-sql")).toBeInTheDocument();

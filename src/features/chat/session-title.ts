@@ -1,4 +1,4 @@
-export const DEFAULT_SESSION_TITLE = "Nová konverzace";
+export const DEFAULT_SESSION_TITLE = "New conversation";
 
 const TITLE_PREFIX_LENGTH = 23;
 

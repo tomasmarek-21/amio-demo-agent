@@ -7,7 +7,7 @@ export async function getNotionStatus(): Promise<NotionStatus> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Stav Notion připojení se nepodařilo načíst.");
+    throw new Error("Failed to load Notion connection status.");
   }
   return response.json() as Promise<NotionStatus>;
 }

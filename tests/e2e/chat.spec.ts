@@ -5,20 +5,20 @@ test("creates a session, streams an answer, and starts a clean session", async (
 }) => {
   await page.goto("/");
   await page
-    .getByPlaceholder("Zeptejte se na PostHog…")
-    .fill("Kolik lidí navštívilo minulý týden pricing stránku?");
-  await page.getByRole("button", { name: "Odeslat" }).click();
-  await expect(page.getByText("42 návštěvníků")).toBeVisible();
+    .getByPlaceholder("Ask about PostHog or Stripe…")
+    .fill("How many people visited the pricing page last week?");
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText("42 visitors")).toBeVisible();
   await page
-    .getByRole("button", { name: /Jak jsem k tomu došel/ })
+    .getByRole("button", { name: /How I got this answer/ })
     .click();
   await expect(page.getByText("execute-sql")).toBeVisible();
 
   await page
-    .getByRole("button", { name: "Nová konverzace", exact: true })
+    .getByRole("button", { name: "New conversation", exact: true })
     .click();
-  await expect(page.getByText("42 návštěvníků")).not.toBeVisible();
+  await expect(page.getByText("42 visitors")).not.toBeVisible();
   await expect(
-    page.getByText("Zeptejte se na data v PostHogu."),
+    page.getByText("Ask something about AMIO."),
   ).toBeVisible();
 });

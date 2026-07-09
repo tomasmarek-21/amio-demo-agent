@@ -9,7 +9,7 @@ export async function GET(_request: Request, context: Context) {
   const session = await chatRepository.getSession(sessionId);
   if (!session) {
     return Response.json(
-      { error: "Konverzace nebyla nalezena." },
+      { error: "Conversation was not found." },
       { status: 404 },
     );
   }

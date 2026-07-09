@@ -5,7 +5,7 @@ export async function getIntegrationsStatus(): Promise<IntegrationsHealth> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Stav integrací se nepodařilo načíst.");
+    throw new Error("Failed to load integrations status.");
   }
   return response.json() as Promise<IntegrationsHealth>;
 }

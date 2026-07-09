@@ -82,7 +82,7 @@ export class AzureResponsesProvider implements AgentProvider {
                 itemSources.get(stringValue(event.item_id)) ||
                 "",
             );
-            yield { type: "status", label: `Načítám nástroje ${source}` };
+            yield { type: "status", label: `Loading tools ${source}` };
             continue;
           }
           if (type === "response.mcp_call.in_progress") {
@@ -91,7 +91,7 @@ export class AzureResponsesProvider implements AgentProvider {
             const source = sourceLocation(
               stringValue(event.server_label) || itemSources.get(itemId) || "",
             );
-            yield { type: "status", label: `Analyzuji data ${source}` };
+            yield { type: "status", label: `Analyzing data ${source}` };
             continue;
           }
           if (type === "response.output_text.delta") {
@@ -109,14 +109,14 @@ export class AzureResponsesProvider implements AgentProvider {
               functionCallCount += 1;
               yield {
                 type: "status",
-                label: `Analyzuji data ${sourceLocation("amio_conversations")}`,
+                label: `Analyzing data ${sourceLocation("amio_conversations")}`,
               };
               yield functionOutput.trace;
               pendingFunctionOutputs.push(functionOutput.output);
               if (functionCallCount > 30) {
                 yield {
                   type: "error",
-                  message: "Function tool byl zavolán více než třicetkrát.",
+                  message: "Function tool was called more than thirty times.",
                 };
                 return;
               }
@@ -131,7 +131,7 @@ export class AzureResponsesProvider implements AgentProvider {
             if (failedCalls > 2) {
               yield {
                 type: "error",
-                message: "MCP dotaz selhal více než dvakrát.",
+                message: "MCP request failed more than twice.",
               };
               return;
             }
@@ -161,7 +161,7 @@ export class AzureResponsesProvider implements AgentProvider {
           if (!completion || completion.type !== "completed") {
             yield {
               type: "error",
-              message: "Azure ukončilo tool odpověď bez completed eventu.",
+              message: "Azure ended the tool response without a completed event.",
             };
             return;
           }
@@ -177,7 +177,7 @@ export class AzureResponsesProvider implements AgentProvider {
 
         yield {
           type: "error",
-          message: "Azure ukončilo odpověď bez completed eventu.",
+          message: "Azure ended the response without a completed event.",
         };
         return;
       }
@@ -342,12 +342,12 @@ async function maybeExecuteFunctionTool(
 }
 
 function sourceLocation(serverLabel: string) {
-  if (serverLabel === "notion") return "v Notionu";
-  if (serverLabel === "stripe") return "ve Stripe";
-  if (serverLabel === "posthog") return "v PostHogu";
-  if (serverLabel === "supabase") return "v Supabase";
-  if (serverLabel === "amio_conversations") return "v AMIO konverzacích";
-  return "v připojeném zdroji";
+  if (serverLabel === "notion") return "in Notion";
+  if (serverLabel === "stripe") return "in Stripe";
+  if (serverLabel === "posthog") return "in PostHog";
+  if (serverLabel === "supabase") return "in Supabase";
+  if (serverLabel === "amio_conversations") return "in AMIO conversations";
+  return "in the connected source";
 }
 
 function inferServerLabel(item: StreamEvent) {
@@ -367,13 +367,13 @@ function eventError(event: StreamEvent) {
   return redact(
     stringValue(direct.message) ||
       stringValue(nested.message) ||
-      "Azure Responses API požadavek selhal.",
+      "Azure Responses API request failed.",
   );
 }
 
 function readableError(error: unknown) {
   if (error instanceof Error) return redact(error.message);
-  return "Azure Responses API požadavek selhal.";
+  return "Azure Responses API request failed.";
 }
 
 function isRetryable(error: unknown) {

@@ -57,13 +57,13 @@ export async function checkMcpTools(
     );
     const tools = readToolNames(payload);
     if (!tools.length) {
-      return { ok: false, message: "MCP server nevrátil žádné tools." };
+      return { ok: false, message: "MCP server did not return any tools." };
     }
     const missing = input.expectedTools?.filter((tool) => !tools.includes(tool));
     if (missing?.length) {
       return {
         ok: false,
-        message: `MCP server odpověděl, ale chybí tool: ${missing[0]}.`,
+        message: `MCP server responded, but is missing tool: ${missing[0]}.`,
       };
     }
     return {
@@ -76,7 +76,7 @@ export async function checkMcpTools(
       message:
         error instanceof Error
           ? readableHealthError(error)
-          : "Health check selhal.",
+          : "Health check failed.",
     };
   } finally {
     clearTimeout(timeout);
@@ -163,7 +163,7 @@ function parseMcpPayload(text: string) {
     const payload = safeJson(line.slice(6));
     if (payload) return payload;
   }
-  throw new Error("MCP server vrátil nečitelnou odpověď.");
+  throw new Error("MCP server returned an unreadable response.");
 }
 
 function safeJson(value: string): Record<string, unknown> | null {
@@ -200,6 +200,6 @@ function readErrorBody(text: string) {
 }
 
 function readableHealthError(error: Error) {
-  if (error.name === "AbortError") return "Health check vypršel.";
-  return error.message || "Health check selhal.";
+  if (error.name === "AbortError") return "Health check timed out.";
+  return error.message || "Health check failed.";
 }

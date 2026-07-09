@@ -33,7 +33,7 @@ export class TokenCipher {
   decrypt(value: string): string {
     const [version, iv, tag, ciphertext] = value.split(".");
     if (version !== "v1" || !iv || !tag || !ciphertext) {
-      throw new Error("Neplatný formát uloženého Notion tokenu.");
+      throw new Error("Invalid format for the stored Notion token.");
     }
     const decipher = createDecipheriv(
       "aes-256-gcm",

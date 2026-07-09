@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     await request.json().catch(() => ({})),
   );
   if (!parsed.success) {
-    return Response.json({ error: "Neplatný název konverzace." }, { status: 400 });
+    return Response.json({ error: "Invalid conversation title." }, { status: 400 });
   }
   const session = await chatRepository.createSession(parsed.data.title);
   return Response.json({ session }, { status: 201 });

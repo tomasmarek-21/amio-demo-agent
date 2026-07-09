@@ -20,7 +20,7 @@ const bodySchema = z.object({
     context.addIssue({
       code: "custom",
       path: ["reasoningEffort"],
-      message: "Zvolený model nepodporuje tuto úroveň reasoning.",
+      message: "The selected model does not support this reasoning level.",
     });
   }
 });
@@ -35,7 +35,7 @@ export async function POST(request: Request, context: Context) {
   );
   if (!parsed.success) {
     return Response.json(
-      { error: "Zpráva musí obsahovat 1 až 4000 znaků." },
+      { error: "Message must contain 1 to 4000 characters." },
       { status: 400 },
     );
   }

@@ -93,7 +93,7 @@ it("fails a timed out run without changing its response id", async () => {
 
   expect(events).toContainEqual({
     type: "error",
-    message: "Analýza překročila časový limit.",
+    message: "Analysis exceeded the time limit.",
   });
   const detail = await repository.getSession(session.id);
   expect(detail?.lastResponseId).toBe("resp-stable");

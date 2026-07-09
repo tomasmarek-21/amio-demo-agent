@@ -14,7 +14,7 @@ async function expectJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(
-      typeof body.error === "string" ? body.error : "Požadavek selhal.",
+      typeof body.error === "string" ? body.error : "Request failed.",
     );
   }
   return response.json() as Promise<T>;
@@ -64,7 +64,7 @@ export async function* sendMessage(
     body: JSON.stringify({ message, model, reasoningEffort }),
   });
   if (!response.ok || !response.body) {
-    throw new Error("Agentní odpověď se nepodařila spustit.");
+    throw new Error("Failed to start the agent response.");
   }
 
   const reader = response.body.getReader();

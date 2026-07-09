@@ -51,7 +51,7 @@ export function ChatShell() {
       "notion",
     );
     if (notionResult === "error") {
-      setError("Notion se nepodařilo připojit. Zkus OAuth znovu.");
+      setError("Failed to connect Notion. Try the OAuth flow again.");
     }
     if (notionResult) {
       window.history.replaceState({}, "", window.location.pathname);
@@ -236,5 +236,5 @@ export function ChatShell() {
 }
 
 function readableError(error: unknown) {
-  return error instanceof Error ? error.message : "Požadavek selhal.";
+  return error instanceof Error ? error.message : "Request failed.";
 }

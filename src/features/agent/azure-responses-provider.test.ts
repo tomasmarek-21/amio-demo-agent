@@ -86,7 +86,7 @@ async function* functionToolStream() {
 }
 
 async function* postToolTextStream() {
-  yield { type: "response.output_text.delta", delta: "Shrnuti hotovo" };
+  yield { type: "response.output_text.delta", delta: "Summary done" };
   yield {
     type: "response.completed",
     response: {
@@ -137,8 +137,8 @@ describe("AzureResponsesProvider", () => {
     );
 
     expect(events).toEqual([
-      { type: "status", label: "Načítám nástroje ve Stripe" },
-      { type: "status", label: "Analyzuji data ve Stripe" },
+      { type: "status", label: "Loading tools in Stripe" },
+      { type: "status", label: "Analyzing data in Stripe" },
       { type: "text_delta", delta: "42 visitors" },
       expect.objectContaining({
         type: "tool_trace",
@@ -258,7 +258,7 @@ describe("AzureResponsesProvider", () => {
     const events = await collect(
       provider.run(
         {
-          userMessage: "Najdi demo chat konverzace",
+          userMessage: "Find demo chat conversations",
           previousResponseId: null,
         },
         new AbortController().signal,
@@ -266,13 +266,13 @@ describe("AzureResponsesProvider", () => {
     );
 
     expect(events).toEqual([
-      { type: "status", label: "Analyzuji data v AMIO konverzacích" },
+      { type: "status", label: "Analyzing data in AMIO conversations" },
       expect.objectContaining({
         type: "tool_trace",
         toolName: "amio_conversations:amio-analyze-conversations-batch",
         status: "completed",
       }),
-      { type: "text_delta", delta: "Shrnuti hotovo" },
+      { type: "text_delta", delta: "Summary done" },
       {
         type: "completed",
         responseId: "resp-tool-2",
@@ -327,7 +327,7 @@ describe("AzureResponsesProvider", () => {
       ),
     ).toContainEqual({
       type: "error",
-      message: "MCP dotaz selhal více než dvakrát.",
+      message: "MCP request failed more than twice.",
     });
   });
 });

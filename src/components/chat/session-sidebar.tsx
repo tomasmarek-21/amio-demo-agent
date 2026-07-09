@@ -114,14 +114,14 @@ export function SessionSidebar({
         onClick={onCreate}
         className="rounded-lg bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--amio-accent-to)] focus:outline-none"
       >
-        Nová konverzace
+        New conversation
       </button>
       <nav className="mt-4 flex gap-2 overflow-x-auto md:flex-col">
         {sessions.map((session) => (
           <button
             type="button"
             key={session.id}
-            aria-label={`Otevřít konverzaci ${session.title}`}
+            aria-label={`Open conversation ${session.title}`}
             onClick={() => onSelect(session.id)}
             className={`min-w-40 rounded-lg px-3 py-2 text-left text-sm ${
               activeId === session.id
@@ -151,7 +151,7 @@ function placeholder(id: ConnectorId, name: string): ConnectorHealth {
     status: "checking",
     configured: false,
     connected: false,
-    message: "Kontroluji připojení…",
+    message: "Checking connection…",
     action: id === "notion" ? "oauth" : "env",
     lastCheckedAt: "",
   };

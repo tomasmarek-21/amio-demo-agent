@@ -29,10 +29,10 @@ export function MessageList({
         {empty && (
           <div className="mt-24 text-center">
             <h2 className="text-xl font-medium text-[var(--amio-text)]">
-              Zeptejte se na data v PostHogu.
+              Ask something about AMIO.
             </h2>
             <p className="mt-2 text-sm text-[var(--amio-text-muted)]">
-              Návštěvnost, landing pages, cesty uživatelů nebo místa odchodu.
+              Revenue, customers, website traffic, or product conversations.
             </p>
           </div>
         )}

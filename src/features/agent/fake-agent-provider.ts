@@ -12,8 +12,8 @@ export class FakeAgentProvider implements AgentProvider {
   ): AsyncIterable<AgentEvent> {
     void input;
     void signal;
-    yield { type: "status", label: "Načítám PostHog nástroje" };
-    yield { type: "status", label: "Analyzuji data v PostHogu" };
+    yield { type: "status", label: "Loading PostHog tools" };
+    yield { type: "status", label: "Analyzing data in PostHog" };
     yield {
       type: "tool_trace",
       toolName: "execute-sql",
@@ -27,7 +27,7 @@ export class FakeAgentProvider implements AgentProvider {
     yield {
       type: "text_delta",
       delta:
-        "## Výsledek\n\nPricing navštívilo **42 návštěvníků**.\n\nObdobí: posledních 7 dokončených dní, časová zóna projektu.",
+        "## Result\n\nPricing was visited by **42 visitors**.\n\nPeriod: last 7 completed days, project timezone.",
     };
     yield {
       type: "completed",

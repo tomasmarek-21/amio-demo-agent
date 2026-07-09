@@ -75,7 +75,7 @@ export class NotionOAuthService {
       connection = await this.repository.getConnection();
     }
     if (!connection) {
-      throw new Error("Notion OAuth klient se nepodařilo zaregistrovat.");
+      throw new Error("Failed to register the Notion OAuth client.");
     }
 
     const state = randomBytes(32).toString("hex");
@@ -113,11 +113,11 @@ export class NotionOAuthService {
       oauthState.redirectUri !==
         `${input.origin}/api/integrations/notion/callback`
     ) {
-      throw new Error("Notion OAuth požadavek vypršel nebo je neplatný.");
+      throw new Error("The Notion OAuth request expired or is invalid.");
     }
     const connection = await this.repository.getConnection();
     if (!connection || connection.redirectUri !== oauthState.redirectUri) {
-      throw new Error("Notion OAuth registrace nebyla nalezena.");
+      throw new Error("Notion OAuth registration was not found.");
     }
     const metadata = await discoverOAuthMetadata();
     const tokens = await requestTokens(metadata.token_endpoint, {
@@ -131,7 +131,7 @@ export class NotionOAuthService {
         : undefined,
     });
     if (!tokens.refresh_token) {
-      throw new Error("Notion nevrátil refresh token.");
+      throw new Error("Notion did not return a refresh token.");
     }
     const now = new Date();
     await this.repository.saveTokens({
@@ -212,25 +212,25 @@ async function discoverOAuthMetadata(): Promise<OAuthMetadata> {
     { headers: { Accept: "application/json" }, cache: "no-store" },
   );
   if (!resourceResponse.ok) {
-    throw new Error("Notion OAuth discovery selhalo.");
+    throw new Error("Notion OAuth discovery failed.");
   }
   const resource = (await resourceResponse.json()) as {
     authorization_servers?: string[];
   };
   const authorizationServer = resource.authorization_servers?.[0];
   if (!authorizationServer) {
-    throw new Error("Notion nevrátil OAuth authorization server.");
+    throw new Error("Notion did not return an OAuth authorization server.");
   }
   const metadataResponse = await fetch(
     `${authorizationServer.replace(/\/$/, "")}/.well-known/oauth-authorization-server`,
     { headers: { Accept: "application/json" }, cache: "no-store" },
   );
   if (!metadataResponse.ok) {
-    throw new Error("Notion OAuth metadata nelze načíst.");
+    throw new Error("Notion OAuth metadata could not be loaded.");
   }
   const metadata = (await metadataResponse.json()) as OAuthMetadata;
   if (!metadata.authorization_endpoint || !metadata.token_endpoint) {
-    throw new Error("Notion OAuth metadata nejsou kompletní.");
+    throw new Error("Notion OAuth metadata is incomplete.");
   }
   return metadata;
 }
@@ -241,7 +241,7 @@ async function registerClient(
   redirectUri: string,
 ) {
   if (!metadata.registration_endpoint) {
-    throw new Error("Notion nepodporuje dynamickou registraci klienta.");
+    throw new Error("Notion does not support dynamic client registration.");
   }
   const response = await fetch(metadata.registration_endpoint, {
     method: "POST",
@@ -260,7 +260,7 @@ async function registerClient(
     }),
   });
   if (!response.ok) {
-    throw new Error("Registrace AMIO klienta v Notion selhala.");
+    throw new Error("AMIO client registration in Notion failed.");
   }
   return (await response.json()) as {
     client_id: string;
@@ -292,7 +292,7 @@ async function requestTokens(
   if (!response.ok || !payload.access_token) {
     throw new OAuthTokenError(
       payload.error ?? "token_exchange_failed",
-      payload.error_description ?? "Notion OAuth token exchange selhal.",
+      payload.error_description ?? "Notion OAuth token exchange failed.",
     );
   }
   return payload as TokenResponse;

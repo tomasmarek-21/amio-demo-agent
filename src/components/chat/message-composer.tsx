@@ -46,7 +46,7 @@ export function MessageComposer({
               event.currentTarget.form?.requestSubmit();
             }
           }}
-          placeholder="Zeptejte se na PostHog nebo Stripe…"
+          placeholder="Ask about PostHog or Stripe…"
           rows={2}
           className="min-h-14 w-full resize-none bg-transparent px-3 py-2 text-sm text-[var(--amio-text)] placeholder:text-[var(--amio-text-muted)] focus:outline-none"
         />
@@ -83,7 +83,7 @@ export function MessageComposer({
                 className="cursor-pointer appearance-none rounded-lg border border-[var(--amio-border)] bg-[var(--amio-surface-muted)] py-2 pl-3 pr-8 text-xs font-medium text-[var(--amio-text)] outline-none hover:border-[var(--amio-accent-to)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {reasoningOptions.length === 0 ? (
-                  <option value="">reasoning: nepodporováno</option>
+                  <option value="">reasoning: not supported</option>
                 ) : (
                   reasoningOptions.map((effort) => (
                     <option key={effort} value={effort}>
@@ -102,7 +102,7 @@ export function MessageComposer({
             disabled={disabled || !message.trim()}
             className="rounded-xl bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Odeslat
+            Send
           </button>
         </div>
       </div>
