@@ -31,22 +31,22 @@ export function SessionSidebar({
     useState<ConnectorId | null>(null);
 
   return (
-    <aside className="flex w-full flex-col border-b border-slate-800 bg-slate-950 p-4 md:w-72 md:border-r md:border-b-0">
+    <aside className="flex w-full flex-col border-b border-[var(--amio-border)] bg-[var(--amio-surface)] p-4 md:w-72 md:border-r md:border-b-0">
       <div className="mb-5">
-        <p className="text-xs font-semibold tracking-[0.2em] text-emerald-400 uppercase">
+        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--amio-accent)] uppercase">
           AMIO
         </p>
-        <h1 className="mt-1 text-lg font-semibold text-white">
+        <h1 className="mt-1 text-lg font-semibold text-[var(--amio-text)]">
           Analytics Agent
         </h1>
       </div>
-      <section className="mb-3 rounded-xl border border-slate-800 bg-slate-900/70 p-2">
+      <section className="mb-3 rounded-xl border border-[var(--amio-border)] bg-[var(--amio-surface-muted)] p-2">
         <div className="mb-2 flex items-center justify-between px-1">
-          <p className="text-xs font-medium text-slate-400">Connectors</p>
+          <p className="text-xs font-medium text-[var(--amio-text-muted)]">Connectors</p>
           <button
             type="button"
             onClick={onRefreshIntegrations}
-            className="text-xs text-emerald-300 hover:text-emerald-200"
+            className="text-xs text-[var(--amio-accent)] hover:opacity-75"
           >
             refresh
           </button>
@@ -61,7 +61,7 @@ export function SessionSidebar({
                     current === connector.id ? null : connector.id,
                   )
                 }
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-[var(--amio-text)] hover:bg-[var(--amio-surface-muted)]"
               >
                 <ConnectorLogo id={connector.id} />
                 <span
@@ -73,12 +73,12 @@ export function SessionSidebar({
                 <span className="min-w-0 flex-1 truncate">
                   {connector.name}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-[var(--amio-text-muted)]">
                   {statusLabel(connector.status)}
                 </span>
               </button>
               {expandedConnector === connector.id && (
-                <div className="mx-2 mb-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2 text-xs text-slate-400">
+                <div className="mx-2 mb-2 rounded-lg border border-[var(--amio-border)] bg-[var(--amio-surface-muted)] p-2 text-xs text-[var(--amio-text-muted)]">
                   <p>{connector.message}</p>
                   <p className="mt-1">
                     Configured: {connector.configured ? "yes" : "no"}
@@ -93,13 +93,13 @@ export function SessionSidebar({
                     <button
                       type="button"
                       onClick={onConnectNotion}
-                      className="mt-2 rounded-md bg-emerald-500 px-2 py-1 font-medium text-slate-950 hover:bg-emerald-400"
+                      className="mt-2 rounded-md bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-2 py-1 font-medium text-white hover:opacity-90"
                     >
                       Reconnect Notion
                     </button>
                   )}
                   {connector.action === "env" && !connector.connected && (
-                    <p className="mt-2 text-slate-500">
+                    <p className="mt-2 text-[var(--amio-text-muted)]">
                       Update `.env.local` and restart the local server.
                     </p>
                   )}
@@ -112,7 +112,7 @@ export function SessionSidebar({
       <button
         type="button"
         onClick={onCreate}
-        className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 focus:ring-2 focus:ring-emerald-300 focus:outline-none"
+        className="rounded-lg bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--amio-accent-to)] focus:outline-none"
       >
         Nová konverzace
       </button>
@@ -125,8 +125,8 @@ export function SessionSidebar({
             onClick={() => onSelect(session.id)}
             className={`min-w-40 rounded-lg px-3 py-2 text-left text-sm ${
               activeId === session.id
-                ? "bg-slate-800 text-white"
-                : "text-slate-400 hover:bg-slate-900"
+                ? "bg-[var(--amio-surface-muted)] text-[var(--amio-text)]"
+                : "text-[var(--amio-text-muted)] hover:bg-[var(--amio-surface-muted)]"
             }`}
           >
             {session.title}

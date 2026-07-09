@@ -8,12 +8,12 @@ export function ToolTracePanel({ traces }: { traces: ToolTrace[] }) {
   if (!traces.length) return null;
 
   return (
-    <div className="mt-3 border-t border-slate-800 pt-3">
+    <div className="mt-3 border-t border-[var(--amio-border)] pt-3">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="text-xs font-medium text-slate-400 hover:text-emerald-300"
+        className="text-xs font-medium text-[var(--amio-text-muted)] hover:text-[var(--amio-accent)]"
       >
         Jak jsem k tomu došel ({traces.length})
       </button>
@@ -22,37 +22,37 @@ export function ToolTracePanel({ traces }: { traces: ToolTrace[] }) {
           {traces.map((trace) => (
             <section
               key={trace.id}
-              className="rounded-lg border border-slate-700 bg-slate-950 p-3"
+              className="rounded-lg border border-[var(--amio-border)] bg-[var(--amio-surface-muted)] p-3"
             >
               <div className="flex items-center justify-between gap-3 text-xs">
-                <strong className="text-slate-200">{trace.toolName}</strong>
+                <strong className="text-[var(--amio-text)]">{trace.toolName}</strong>
                 <span
                   className={
                     trace.status === "completed"
-                      ? "text-emerald-400"
-                      : "text-red-400"
+                      ? "text-[var(--amio-accent)]"
+                      : "text-red-500"
                   }
                 >
                   {trace.status}
                   {trace.durationMs !== null ? ` · ${trace.durationMs} ms` : ""}
                 </span>
               </div>
-              <p className="mt-3 text-[11px] text-slate-500">Argumenty</p>
-              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-300">
+              <p className="mt-3 text-[11px] text-[var(--amio-text-muted)]">Argumenty</p>
+              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-[var(--amio-text)]">
                 {pretty(trace.sanitizedArguments)}
               </pre>
               {trace.resultSummary && (
                 <>
-                  <p className="mt-3 text-[11px] text-slate-500">
+                  <p className="mt-3 text-[11px] text-[var(--amio-text-muted)]">
                     Shrnutí výsledku
                   </p>
-                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-300">
+                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-[var(--amio-text)]">
                     {pretty(trace.resultSummary)}
                   </pre>
                 </>
               )}
               {trace.error && (
-                <p className="mt-2 text-xs text-red-300">{trace.error}</p>
+                <p className="mt-2 text-xs text-red-500">{trace.error}</p>
               )}
             </section>
           ))}

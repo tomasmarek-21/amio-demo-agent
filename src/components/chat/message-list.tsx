@@ -28,10 +28,10 @@ export function MessageList({
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         {empty && (
           <div className="mt-24 text-center">
-            <h2 className="text-xl font-medium text-white">
+            <h2 className="text-xl font-medium text-[var(--amio-text)]">
               Zeptejte se na data v PostHogu.
             </h2>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-[var(--amio-text-muted)]">
               Návštěvnost, landing pages, cesty uživatelů nebo místa odchodu.
             </p>
           </div>
@@ -46,8 +46,8 @@ export function MessageList({
               key={message.id}
               className={
                 message.role === "user"
-                  ? "ml-auto max-w-[80%] rounded-2xl bg-emerald-500 px-4 py-3 text-slate-950"
-                  : "max-w-none rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4 text-slate-100"
+                  ? "ml-auto max-w-[80%] rounded-2xl bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-4 py-3 text-white"
+                  : "max-w-none rounded-2xl border border-[var(--amio-border)] bg-[var(--amio-surface)] px-5 py-4 text-[var(--amio-text)]"
               }
             >
               {message.role === "assistant" ? (
@@ -64,12 +64,12 @@ export function MessageList({
           );
         })}
         {pendingUser && (
-          <article className="ml-auto max-w-[80%] rounded-2xl bg-emerald-500 px-4 py-3 text-slate-950">
+          <article className="ml-auto max-w-[80%] rounded-2xl bg-gradient-to-r from-[var(--amio-accent-from)] to-[var(--amio-accent-to)] px-4 py-3 text-white">
             {pendingUser}
           </article>
         )}
         {(streamingText || status) && (
-          <article className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4 text-slate-100">
+          <article className="rounded-2xl border border-[var(--amio-border)] bg-[var(--amio-surface)] px-5 py-4 text-[var(--amio-text)]">
             {streamingText ? (
               <>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -78,12 +78,12 @@ export function MessageList({
                 <ToolTracePanel traces={streamingTraces} />
               </>
             ) : (
-              <p className="text-sm text-slate-400">{status}</p>
+              <p className="text-sm text-[var(--amio-text-muted)]">{status}</p>
             )}
           </article>
         )}
         {error && (
-          <p role="alert" className="rounded-lg bg-red-950 px-4 py-3 text-red-200">
+          <p role="alert" className="rounded-lg bg-[#fde8e8] px-4 py-3 text-[#c92a2a]">
             {error}
           </p>
         )}
