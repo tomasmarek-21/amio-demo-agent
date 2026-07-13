@@ -13,8 +13,9 @@ const mrrRowSchema = z.object({
   mrr_gross_eur: z.number().nonnegative(),
   subscription_status: z
     .enum(["active", "past_due", "canceled", "unpaid"])
+    .nullable()
     .optional()
-    .describe("Leave empty to default to 'active'."),
+    .describe("Leave empty or null to default to 'active'."),
 });
 
 const upsertAgentMrrSchema = z.object({
