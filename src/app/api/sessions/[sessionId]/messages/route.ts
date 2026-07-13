@@ -7,7 +7,7 @@ import {
 } from "@/features/agent/models";
 
 const bodySchema = z.object({
-  message: z.string().trim().min(1).max(4_000),
+  message: z.string().trim().min(1).max(20_000),
   model: z.enum(AGENT_MODEL_IDS),
   reasoningEffort: z.enum(REASONING_EFFORTS).nullable(),
 }).superRefine((value, context) => {

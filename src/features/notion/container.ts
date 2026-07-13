@@ -9,7 +9,7 @@ const env = getServerEnv();
 const encryptionSecret =
   env.AGENT_PROVIDER === "azure"
     ? env.AZURE_OPENAI_API_KEY
-    : `local-fake-provider:${env.DATABASE_URL}`;
+    : `local-fake-provider:${env.SUPABASE_AGENT_URL}`;
 
 export const notionOAuthService = new NotionOAuthService(
   new NotionOAuthRepository(db),

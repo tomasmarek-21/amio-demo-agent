@@ -1,7 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 import { db } from "@/db/client";
-import { SqliteChatRepository } from "@/features/chat/sqlite-chat-repository";
+import { SupabaseChatRepository } from "@/features/chat/chat-repository";
 import { getServerEnv } from "@/lib/env";
 import { notionOAuthService } from "@/features/notion/container";
 import { AgentRunner } from "./agent-runner";
@@ -19,10 +19,11 @@ import {
   AMIO_DEMO_BOT_ID,
   createAmioConversationsTools,
 } from "./amio-conversations-capability";
+import { createMrrFunctionTool } from "./mrr-capability";
 
 const env = getServerEnv();
 
-export const chatRepository = new SqliteChatRepository(db);
+export const chatRepository = new SupabaseChatRepository(db);
 
 let provider: AgentProvider;
 let model: string;
@@ -67,15 +68,25 @@ if (env.AGENT_PROVIDER === "fake") {
             ]
           : []),
       ],
-      functionTools: env.AMIO_API_KEY
-        ? createAmioConversationsTools({
-            apiKey: env.AMIO_API_KEY,
-            baseUrl:
-              env.AMIO_API_BASE_URL ?? "https://chatbot-engine.amio.io",
-            botId: AMIO_DEMO_BOT_ID,
-            maxConversations: env.AMIO_MAX_CONVERSATIONS ?? 50,
-          })
-        : [],
+      functionTools: [
+        ...(env.AMIO_API_KEY
+          ? createAmioConversationsTools({
+              apiKey: env.AMIO_API_KEY,
+              baseUrl:
+                env.AMIO_API_BASE_URL ?? "https://chatbot-engine.amio.io",
+              botId: AMIO_DEMO_BOT_ID,
+              maxConversations: env.AMIO_MAX_CONVERSATIONS ?? 50,
+            })
+          : []),
+        ...(env.SUPABASE_PROJECT_REF && env.SUPABASE_SERVICE_ROLE_KEY
+          ? [
+              createMrrFunctionTool({
+                supabaseUrl: `https://${env.SUPABASE_PROJECT_REF}.supabase.co`,
+                serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+              }),
+            ]
+          : []),
+      ],
       getMcpTools: async () => {
         try {
           const accessToken =

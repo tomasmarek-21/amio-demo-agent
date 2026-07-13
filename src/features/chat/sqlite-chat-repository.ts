@@ -8,6 +8,7 @@ import type {
   CompleteRunInput,
 } from "./repository";
 import type {
+  AssistantEvidence,
   ChatMessage,
   ChatRole,
   ChatSession,
@@ -70,7 +71,7 @@ export class SqliteChatRepository implements ChatRepository {
         })),
     );
 
-    return { ...session, messages: sessionMessages, evidence };
+    return { ...session, messages: sessionMessages as ChatMessage[], evidence: evidence as AssistantEvidence[] };
   }
 
   async addMessage(

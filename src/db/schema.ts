@@ -1,5 +1,8 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+// SQLite schema used only for unit tests (better-sqlite3 in-memory).
+// Production uses @supabase/supabase-js directly (no Drizzle).
+
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
@@ -10,27 +13,19 @@ export const sessions = sqliteTable("sessions", {
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
-  sessionId: text("session_id")
-    .notNull()
-    .references(() => sessions.id),
-  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  sessionId: text("session_id").notNull().references(() => sessions.id),
+  role: text("role").notNull(),
   content: text("content").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
 
 export const agentRuns = sqliteTable("agent_runs", {
   id: text("id").primaryKey(),
-  sessionId: text("session_id")
-    .notNull()
-    .references(() => sessions.id),
-  userMessageId: text("user_message_id")
-    .notNull()
-    .references(() => messages.id),
+  sessionId: text("session_id").notNull().references(() => sessions.id),
+  userMessageId: text("user_message_id").notNull().references(() => messages.id),
   assistantMessageId: text("assistant_message_id").references(() => messages.id),
   model: text("model").notNull(),
-  status: text("status", {
-    enum: ["running", "completed", "failed"],
-  }).notNull(),
+  status: text("status").notNull(),
   startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
   finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
   inputTokens: integer("input_tokens"),
@@ -41,16 +36,12 @@ export const agentRuns = sqliteTable("agent_runs", {
 
 export const toolCalls = sqliteTable("tool_calls", {
   id: text("id").primaryKey(),
-  runId: text("run_id")
-    .notNull()
-    .references(() => agentRuns.id),
+  runId: text("run_id").notNull().references(() => agentRuns.id),
   toolName: text("tool_name").notNull(),
   sanitizedArguments: text("sanitized_arguments").notNull(),
   resultSummary: text("result_summary"),
   durationMs: integer("duration_ms"),
-  status: text("status", {
-    enum: ["running", "completed", "failed"],
-  }).notNull(),
+  status: text("status").notNull(),
   error: text("error"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
@@ -62,9 +53,7 @@ export const notionConnections = sqliteTable("notion_connections", {
   clientSecret: text("client_secret"),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
-  accessTokenExpiresAt: integer("access_token_expires_at", {
-    mode: "timestamp_ms",
-  }),
+  accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp_ms" }),
   authorizedAt: integer("authorized_at", { mode: "timestamp_ms" }),
   lastRefreshAt: integer("last_refresh_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),

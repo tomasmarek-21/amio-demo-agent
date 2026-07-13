@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 const commonEnv = z.object({
-  DATABASE_URL: z.string().min(1).default("./data/agent.sqlite"),
+  SUPABASE_AGENT_URL: z.string().url(),
+  SUPABASE_AGENT_SERVICE_ROLE_KEY: z.string().min(1),
 });
 
 const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
@@ -25,6 +26,10 @@ const serverEnvSchema = z.discriminatedUnion("AGENT_PROVIDER", [
       z.string().min(1).optional(),
     ),
     SUPABASE_PROJECT_REF: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    SUPABASE_SERVICE_ROLE_KEY: z.preprocess(
       (value) => (value === "" ? undefined : value),
       z.string().min(1).optional(),
     ),
