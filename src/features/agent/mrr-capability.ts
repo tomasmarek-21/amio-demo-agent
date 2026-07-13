@@ -10,8 +10,11 @@ export interface MrrCapabilityConfig {
 const mrrRowSchema = z.object({
   account_domain: z.string().min(1),
   month_start: z.string().regex(/^\d{4}-\d{2}-01$/, "must be YYYY-MM-01"),
-  mrr_agent_eur: z.number().nonnegative(),
-  mrr_agent_source: z.enum(["actual", "estimate"]),
+  mrr_gross_eur: z.number().nonnegative(),
+  subscription_status: z
+    .enum(["active", "past_due", "canceled", "unpaid"])
+    .optional()
+    .describe("Leave empty to default to 'active'."),
 });
 
 const upsertAgentMrrSchema = z.object({
@@ -19,7 +22,7 @@ const upsertAgentMrrSchema = z.object({
     .array(mrrRowSchema)
     .min(1)
     .describe(
-      "One entry per account for the target month. Use source='actual' when a finalized Stripe invoice was found, 'estimate' when copying last month's value.",
+      "One entry per account for the target month. mrr_gross_eur is the monthly recurring amount in EUR computed from active Stripe subscriptions (annual plans divided by 12, CZK converted to EUR). This overwrites any previous value for that account+month.",
     ),
 });
 
@@ -29,7 +32,10 @@ export function createMrrFunctionTool(
   return zodResponsesFunction({
     name: "upsert_agent_mrr",
     description:
-      "Write MRR values computed from Stripe into accounts_revenue_monthly. Only updates mrr_agent_eur and mrr_agent_source — never touches payments or workflow MRR columns. The row for the account/month must already exist (created by the n8n workflow on the 1st of the month). Returns { updated, not_found }.",
+      "Write MRR values computed from Stripe into accounts_revenue_monthly and accounts. " +
+      "Call this after reading active Stripe subscriptions and computing monthly EUR amounts. " +
+      "Supports both INSERT (new month) and UPDATE (overwrite existing). " +
+      "Returns { upserted }.",
     parameters: upsertAgentMrrSchema,
     function: async ({ rows }) => {
       const res = await fetch(
