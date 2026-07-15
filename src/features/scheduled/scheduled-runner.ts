@@ -121,7 +121,7 @@ export async function runScheduledWorkflow(
   const runner = new AgentRunner(
     chatRepository,
     provider,
-    env.AZURE_OPENAI_DEPLOYMENT,
+    "gpt-55",
   );
 
   console.log(`[scheduled-run] tools ready — mcpTools=${mcpTools.length} functionTools=${functionTools.length}`);
@@ -129,7 +129,7 @@ export async function runScheduledWorkflow(
   let status: "completed" | "failed" = "completed";
   let runError: string | null = null;
   try {
-    for await (const event of runner.run(sessionId, prompt)) {
+    for await (const event of runner.run(sessionId, prompt, undefined, "gpt-55", "high")) {
       if (event.type === "error") {
         status = "failed";
         runError = event.message;
