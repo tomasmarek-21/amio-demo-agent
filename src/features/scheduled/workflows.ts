@@ -403,93 +403,196 @@ Report:
 }
 
 function demoConversationsSystemPrompt(): string {
-  const today = new Date().toISOString().slice(0, 10);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Prague",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
-  return `## Today's date is ${today}.
+  return `Today's date: ${today}
+Bot ID: 6950785430289573256
+Timezone: Europe/Prague
 
-Your task: scan new Amio demo chat conversations since the last recorded one, classify them as cold/warm/hot, and upsert all results to Supabase.
+Your task is to find all new or updated Amio demo chat conversations, analyze their full transcripts, classify their lead potential, evaluate the quality of the demo agent's answers, write the results to Supabase, and send a useful Slack summary when appropriate.
 
-## STEP 1 — Find start timestamp
+Complete the entire workflow independently. Do not stop after retrieving or analyzing the conversations.
 
-Query Supabase:
-\`\`\`sql
-SELECT MAX(last_message_at) AS last_seen FROM demo_conversations
-\`\`\`
+Core objectives
 
-If the result is null (table is empty), use ${thirtyDaysAgo} as dateFrom.
-Otherwise, use the returned timestamp as dateFrom.
+For every analyzed conversation:
+* identify what the visitor wanted or asked about
+* classify the visitor as a cold, warm, or hot lead
+* evaluate whether the demo agent answered accurately and helpfully
+* identify unanswered questions, weak answers, misunderstandings, missing knowledge, or other issues that Amio should improve
+* create a direct URL to the conversation in Amio Automate
+* write the result to Supabase
 
-## STEP 2 — Fetch conversations
+Use the full conversation transcript for every decision. Do not classify a conversation based only on its first or last message.
 
-Call \`amio-fetch-conversation-transcripts\` with:
-- dateFrom: the timestamp from Step 1
-- dateTo: current timestamp (now, ISO 8601 with timezone offset)
-- maxConversations: 200
-- includeSystemEvents: false
+Step 1 – Determine the scan start
 
-## STEP 3 — Classify each conversation
+Retrieve the latest \`last_message_at\` value currently stored in the Supabase \`demo_conversations\` table.
 
-For each conversation returned, read its full transcript and classify it:
-- **cold**: quick or single-turn exchange, low intent, no discussion of pricing, integration, or specific use cases
-- **warm**: multiple turns, exploring capabilities or use cases, genuine interest but not immediately ready to proceed
-- **hot**: actively discussing pricing, requesting a demo or trial, asking about integration or deployment steps, explicit purchase intent
+If at least one stored conversation exists:
+* use the latest stored \`last_message_at\` as the scan starting point
+* include a small overlap before this timestamp when possible so conversations updated near the boundary are not missed
+* duplicate results are acceptable because the final write is an upsert by \`contact_id\`
 
-For **warm** and **hot** conversations, write a 2–3 sentence insight:
-1. What was the customer asking about?
-2. How did the agent respond — was it helpful or did it fall short?
+If the table has no rows:
+* scan the previous 14 days
 
-For **cold** conversations, set insight to null.
+Set the scan end to the current time.
 
-## STEP 4 — Construct amio_history_url
+Step 2 – Retrieve conversations
 
-For each conversation, build the URL using:
-https://automate.amio.io/bots/6950785430289573256/history?dateFrom={DAY_START}&dateTo={NEXT_DAY_END}&contactId={CONTACT_ID}
+Use \`amio-search-conversations\` to retrieve conversations for Bot ID \`6950785430289573256\` within the selected time range.
 
-Where:
-- DAY_START = start of day of first_message_at in Europe/Prague timezone, URL-encoded ISO 8601
-- NEXT_DAY_END = end of day after last_message_at in Europe/Prague timezone, URL-encoded ISO 8601
+Use:
+* \`dateFrom\`: calculated scan start
+* \`dateTo\`: current time
+* \`maxConversations\`: 200
+
+Retrieve and process every available conversation in the range.
+
+Do not silently omit conversations. If the result limit is reached and more conversations may exist, retrieve additional batches when supported. If all conversations cannot be retrieved, clearly report the limitation and send a Slack warning because human attention is required.
+
+Deduplicate the retrieved results by \`contact_id\`.
+
+Step 3 – Fetch full transcripts
+
+For every retrieved conversation, call \`amio-fetch-conversation-transcripts\`.
+
+Always use the complete transcript to determine:
+* the visitor's initial request
+* lead classification
+* conversation outcome
+* answer quality
+* unresolved questions
+* potential improvements to the demo agent
+
+Ignore empty system events and technical metadata that are not part of the actual conversation.
+
+Step 4 – Determine the initial request
+
+Set \`initial_request\` to a concise description of the visitor's first meaningful request, question, or objective.
+
+Requirements:
+* describe the visitor's intent, not the agent's response
+* preserve important details such as requested capability, integration, use case, industry, language, pricing question, or implementation requirement
+* do not copy a long message verbatim
+* use \`null\` only when no meaningful visitor request can be determined
+
+Step 5 – Classify the lead
+
+Classify every conversation as exactly one of: \`cold\`, \`warm\`, or \`hot\`
+
+Base the classification primarily on the visitor's demonstrated intent and engagement. Do not classify a lead as hot merely because the demo agent mentioned pricing, deployment, a trial, or a sales call.
+
+Cold — use \`cold\` when the conversation shows little or no meaningful commercial interest.
+Typical signals: accidental, empty, spam, test, or irrelevant conversation; greeting without meaningful follow-up; one very basic question with no further exploration; extremely short interaction with no clear business need; no meaningful interest in Amio's product, capabilities, pricing, or implementation.
+
+Warm — use \`warm\` when the visitor shows genuine interest and explores whether Amio could fit their needs, but does not yet demonstrate strong purchase or implementation intent.
+Typical signals: asks about product capabilities or supported use cases; asks how a feature works; asks about channels, languages, integrations, automation, AI quality, analytics, or limitations; describes a potential business use case; engages in several meaningful turns; compares Amio with another solution; asks questions that suggest evaluation but not an immediate next step.
+
+Hot — use \`hot\` when the visitor demonstrates clear commercial, implementation, or buying intent.
+Typical signals: asks about pricing, plans, contracts, or expected cost for their use case; asks how to start a trial, demo, onboarding, or deployment; discusses a specific integration or implementation requirement; provides company-specific requirements or operational details; asks to speak with sales or arrange a meeting; shares contact information for follow-up; indicates a timeline, budget, decision process, or active project; clearly signals that they are considering adopting or purchasing the solution.
+
+When uncertain: choose \`warm\` instead of \`hot\` unless clear commercial or implementation intent exists; choose \`cold\` instead of \`warm\` when meaningful product interest is not demonstrated.
+
+Step 6 – Evaluate the demo agent
+
+For every warm or hot conversation, create an \`insight\` of 2–3 informative sentences covering:
+1. What the visitor asked about or wanted to achieve.
+2. Whether the demo agent answered the questions correctly, clearly, and sufficiently.
+3. Any unresolved question, weak answer, misunderstanding, missing knowledge, poor conversation behavior, or useful improvement opportunity.
+
+Be specific and evidence-based. Do not assume the visitor was satisfied merely because they stopped responding.
+
+For cold conversations: set \`insight\` to \`null\`.
+
+Step 7 – Construct the Amio history URL
+
+For every conversation, construct a direct Amio Automate history URL:
+\`https://automate.amio.io/bots/6950785430289573256/history\`
+
+Add these query parameters:
+* \`dateFrom\`: start of the calendar day containing \`first_message_at\` (Europe/Prague timezone)
+* \`dateTo\`: start of the calendar day immediately after the day containing \`last_message_at\` (Europe/Prague timezone) — this is an exclusive upper boundary
+* \`contactId\`: the exact conversation contact ID
+
+Use valid ISO 8601 datetimes with the correct Europe/Prague timezone offset, including daylight-saving time. Properly URL-encode all query parameter values.
 
 Example — conversation on 2026-07-13, contactId 7483096310095826390:
-https://automate.amio.io/bots/6950785430289573256/history?dateFrom=2026-07-13T00%3A00%3A00%2B02%3A00&dateTo=2026-07-14T23%3A59%3A59%2B02%3A00&contactId=7483096310095826390
+https://automate.amio.io/bots/6950785430289573256/history?dateFrom=2026-07-13T00%3A00%3A00%2B02%3A00&dateTo=2026-07-14T00%3A00%3A00%2B02%3A00&contactId=7483096310095826390
 
-## STEP 5 — Upsert all rows
+Step 8 – Prepare rows
 
-Call \`upsert_demo_conversations\` exactly once with all classified rows.
+Create exactly one row per \`contact_id\`. Each row must contain:
+* \`contact_id\`
+* \`first_message_at\` (ISO 8601 with timezone offset)
+* \`last_message_at\` (ISO 8601 with timezone offset)
+* \`initial_request\`
+* \`classification\` (exactly \`cold\`, \`warm\`, or \`hot\`)
+* \`insight\` (\`null\` for cold; 2–3 sentences for warm/hot)
+* \`amio_history_url\`
 
-Each row must include:
-- contact_id
-- first_message_at (ISO 8601 with timezone offset)
-- last_message_at (ISO 8601 with timezone offset)
-- initial_request (first customer message text, or null if unavailable)
-- classification ("cold", "warm", or "hot")
-- insight (2–3 sentence string for warm/hot; null for cold)
-- amio_history_url
+Before writing, verify that every retrieved conversation has been fetched, analyzed, classified, and assigned a valid history URL.
 
-## STEP 6 — Call complete_scheduled_run
+Step 9 – Write to Supabase
 
-Call \`complete_scheduled_run\` with slackMessage formatted as Slack mrkdwn.
+Call \`upsert_demo_conversations\` exactly once after all conversations have been analyzed.
 
-If there are any warm or hot conversations, format the message as:
+If no conversations were returned: do not call \`upsert_demo_conversations\`, report that no new or updated conversations were found, and do not send a Slack message.
 
-*Demo Chat Scan — {dateFrom date} → ${today}*
+Only report that the data was written if the tool call succeeds.
+
+Step 10 – Slack notification
+
+Do not send a Slack message after every run.
+
+Send one Slack message only when at least one of these conditions is true:
+* at least one hot conversation was found
+* at least one warm conversation was found
+* a significant demo-agent problem was found
+* a recurring question or pattern would be useful for the team
+* a conversation could not be processed
+* the Supabase write failed or was incomplete
+* any finding requires human review or action
+
+If the run contains only cold conversations and no noteworthy issue, pass \`slackMessage = null\` to \`complete_scheduled_run\`.
+
+When a Slack message is warranted, call \`complete_scheduled_run\` with a message structured as Slack mrkdwn:
+
+*Demo Chat Scan — {date range}*
 {hot_count} hot 🔥 · {warm_count} warm 👀 · {cold_count} cold
 
+*What visitors asked about*
+• Concise summary of the most important or recurring topics
+
+*Demo agent quality*
+• What the agent handled well
+• Important weak answers, unresolved questions, or missing knowledge
+
 *Hot leads:*
-• <{amio_history_url}|View conversation> — _{insight}_
+• <{amio_history_url}|View conversation> — {concise lead summary and next-step reason}
 
 *Warm leads:*
-• <{amio_history_url}|View conversation> — _{insight}_
+• <{amio_history_url}|View conversation> — {concise lead summary}
 
-If there are zero warm and zero hot conversations, pass slackMessage = null.
+Only include the Hot leads or Warm leads section when that classification exists. Every listed conversation must contain its direct \`amio_history_url\`. Do not list cold conversations individually unless one contains a noteworthy agent failure.
 
-## STEP 7 — Final report
+Step 11 – Final report
 
-After calling complete_scheduled_run, summarize:
-- Date range scanned
-- Total conversations found and their classification breakdown (cold/warm/hot counts)
-- Upsert result ({ upserted: N })
-- Whether a Slack message was sent`.trim();
+After completing the workflow, report:
+* scanned date range
+* number of conversations retrieved
+* number of conversations successfully analyzed
+* cold, warm, and hot counts
+* number of rows sent to Supabase and number reported as upserted
+* any conversations skipped or not processed and why
+* whether the Supabase upsert succeeded
+* whether a Slack message was sent and why (or why not)`.trim();
 }
 
 export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
@@ -512,7 +615,7 @@ export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
     systemPrompt: () => demoConversationsSystemPrompt(),
     prompt: "Proceed with the demo conversations scan as described in your instructions.",
     capabilities: ["amio-conversations", "supabase", "demo-conversations"],
-    n8nWorkflowUrl: undefined, // set after importing workflow into n8n
+    n8nWorkflowUrl: "https://amio2.app.n8n.cloud/workflow/cHHCUv6mEsiJ8teX",
   },
 };
 
