@@ -435,8 +435,7 @@ Step 1 – Determine the scan start
 Retrieve the latest \`last_message_at\` value currently stored in the Supabase \`demo_conversations\` table.
 
 If at least one stored conversation exists:
-* use the latest stored \`last_message_at\` as the scan starting point
-* include a small overlap before this timestamp when possible so conversations updated near the boundary are not missed
+* subtract 1 hour from the stored \`last_message_at\` and use that as the scan starting point (this overlap ensures conversations updated near the boundary are not missed)
 * duplicate results are acceptable because the final write is an upsert by \`contact_id\`
 
 If the table has no rows:
@@ -452,6 +451,7 @@ Use:
 * \`dateFrom\`: calculated scan start
 * \`dateTo\`: current time
 * \`maxConversations\`: 200
+* \`includeSystemEvents\`: false
 
 Retrieve and process every available conversation in the range.
 
@@ -560,7 +560,7 @@ Send one Slack message only when at least one of these conditions is true:
 * the Supabase write failed or was incomplete
 * any finding requires human review or action
 
-If the run contains only cold conversations and no noteworthy issue, pass \`slackMessage = null\` to \`complete_scheduled_run\`.
+Always call \`complete_scheduled_run\` at the end of the workflow — this is required to signal completion to the n8n orchestrator. If you do not call it, the workflow will hang indefinitely. Call it with \`slackMessage = null\` when no notification is needed, or with the formatted message below when one is warranted.
 
 When a Slack message is warranted, call \`complete_scheduled_run\` with a message structured as Slack mrkdwn:
 
