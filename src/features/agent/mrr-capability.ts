@@ -61,41 +61,7 @@ export function createMrrTools(config: MrrCapabilityConfig): InternalFunctionToo
     },
   }) as InternalFunctionTool;
 
-  const exchangeRatesTool = zodResponsesFunction({
-    name: "get_exchange_rates",
-    description:
-      "Returns the most recent EUR exchange rates per currency from the Supabase payments table. " +
-      "Call this before computing MRR if any Stripe invoices are in a non-EUR currency. " +
-      "Returns { rates: { currency: string; rate_to_eur: number }[] }.",
-    parameters: z.object({}),
-    function: async () => {
-      const url = new URL(`${config.supabaseUrl}/rest/v1/payments`);
-      url.searchParams.set("select", "currency,exchange_rate_to_eur");
-      url.searchParams.set("currency", "neq.eur");
-      url.searchParams.set("exchange_rate_to_eur", "not.is.null");
-      url.searchParams.set("order", "created_at.desc");
-      url.searchParams.set("limit", "200");
-
-      const res = await fetch(url.toString(), { headers });
-      if (!res.ok) {
-        const text = await res.text().catch(() => res.statusText);
-        throw new Error(`get_exchange_rates failed (${res.status}): ${text}`);
-      }
-
-      const rows: { currency: string; exchange_rate_to_eur: number }[] = await res.json();
-      const seen = new Set<string>();
-      const rates: { currency: string; rate_to_eur: number }[] = [];
-      for (const row of rows) {
-        if (!seen.has(row.currency)) {
-          seen.add(row.currency);
-          rates.push({ currency: row.currency, rate_to_eur: row.exchange_rate_to_eur });
-        }
-      }
-      return { rates };
-    },
-  }) as InternalFunctionTool;
-
-  return [upsertTool, exchangeRatesTool];
+  return [upsertTool];
 }
 
 /** @deprecated use createMrrTools */

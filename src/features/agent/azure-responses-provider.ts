@@ -28,6 +28,7 @@ export interface AzureResponsesProviderConfig {
   functionTools?: InternalFunctionTool[];
   getMcpTools?: () => Promise<ConfiguredMcpTool[]>;
   instructions?: string;
+  maxMcpFailures?: number;
 }
 
 type ConfiguredMcpTool =
@@ -129,10 +130,11 @@ export class AzureResponsesProvider implements AgentProvider {
           }
           if (type === "response.mcp_call.failed") {
             failedCalls += 1;
-            if (failedCalls > 2) {
+            const maxFailures = this.config.maxMcpFailures ?? 10;
+            if (failedCalls > maxFailures) {
               yield {
                 type: "error",
-                message: "MCP request failed more than twice.",
+                message: `MCP request failed more than ${maxFailures} times.`,
               };
               return;
             }
