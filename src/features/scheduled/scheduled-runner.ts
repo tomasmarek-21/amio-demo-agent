@@ -129,7 +129,7 @@ export async function runScheduledWorkflow(
   let status: "completed" | "failed" = "completed";
   let runError: string | null = null;
   try {
-    for await (const event of runner.run(sessionId, prompt, undefined, "gpt-55", "high")) {
+    for await (const event of runner.run(sessionId, prompt, undefined, "gpt-55", "medium")) {
       if (event.type === "error") {
         status = "failed";
         runError = event.message;

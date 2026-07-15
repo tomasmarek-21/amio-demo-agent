@@ -8,7 +8,7 @@ export class AgentRunner {
     private readonly repository: ChatRepository,
     private readonly provider: AgentProvider,
     private readonly model: string,
-    private readonly timeoutMs = 300_000,
+    private readonly timeoutMs = 600_000,
   ) {}
 
   async *run(
