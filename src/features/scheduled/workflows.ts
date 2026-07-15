@@ -40,7 +40,9 @@ Complete the entire workflow independently. Do not stop after collecting the dat
 
 # MRR definition
 
-MRR is recurring subscription revenue normalized to one month.
+For this task, MRR represents the invoice amount normalized to one month based on the invoice's service period.
+
+Use every Stripe invoice that covers the target month, regardless of whether it originates from a recurring subscription or a one-time invoice.
 
 Use the invoice amount:
 
@@ -50,11 +52,24 @@ Use the invoice amount:
 4. Exclude invoices with a negative total.
 5. Exclude fully refunded invoices.
 
+Calculate:
+
+invoice_mrr = invoice_amount / service_period_months
+
+Examples:
+
+- Monthly invoice → divide by 1
+- Quarterly invoice → divide by 3
+- Annual invoice → divide by 12
+- One-time invoice covering one month → divide by 1
+
+Do not exclude invoices simply because they are not recurring subscriptions.
+
 All final MRR values must be converted to EUR.
 
 # Step 1 – Find Stripe invoices covering the target month
 
-Retrieve all Stripe invoices whose service period overlaps with the target month.
+Retrieve every Stripe invoice whose service period overlaps with the target month, regardless of whether the invoice originates from a recurring subscription or a one-time invoice.
 
 Determine the service period using:
 
@@ -86,6 +101,8 @@ For every relevant invoice collect:
 - finalized_at
 
 Retrieve all pages when the Stripe tool uses pagination.
+
+Do not filter invoices based on Stripe billing type (recurring vs one-time). The invoice service period is the only criterion used for calculating MRR.
 
 # Step 2 – Normalize invoices to monthly revenue
 
