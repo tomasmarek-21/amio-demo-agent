@@ -18,16 +18,35 @@ import { createMrrFunctionTool } from "@/features/agent/mrr-capability";
 import { getWorkflow, type Capability } from "./workflows";
 import { createCompleteScheduledRunTool } from "./complete-run-tool";
 
+function getCurrentMonthStart(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Prague",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  return `${year}-${month}-01`;
+}
+
 export async function runScheduledWorkflow(
   sessionId: string,
   workflowId: string,
   callbackUrl: string | null,
+  targetMonth?: string, // "YYYY-MM-01"; defaults to current Prague month
 ): Promise<void> {
   const workflow = getWorkflow(workflowId);
   if (!workflow) return;
 
   const env = getServerEnv();
   if (env.AGENT_PROVIDER === "fake") return;
+
+  const resolvedMonth = targetMonth ?? getCurrentMonthStart();
+  const ctx = { targetMonth: resolvedMonth };
+
+  const instructions = workflow.systemPrompt?.(ctx);
+  const prompt =
+    typeof workflow.prompt === "function" ? workflow.prompt(ctx) : workflow.prompt;
 
   let capturedSlackMessage: string | null = null;
   const completeRunTool = createCompleteScheduledRunTool(({ slackMessage }) => {
@@ -95,6 +114,7 @@ export async function runScheduledWorkflow(
       deployment: env.AZURE_OPENAI_DEPLOYMENT,
       mcpTools,
       functionTools,
+      ...(instructions ? { instructions } : {}),
     },
   );
 
@@ -106,7 +126,7 @@ export async function runScheduledWorkflow(
 
   let status: "completed" | "failed" = "completed";
   try {
-    for await (const event of runner.run(sessionId, workflow.prompt)) {
+    for await (const event of runner.run(sessionId, prompt)) {
       if (event.type === "error") {
         status = "failed";
         break;

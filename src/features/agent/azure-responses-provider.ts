@@ -27,6 +27,7 @@ export interface AzureResponsesProviderConfig {
   mcpTools: ConfiguredMcpTool[];
   functionTools?: InternalFunctionTool[];
   getMcpTools?: () => Promise<ConfiguredMcpTool[]>;
+  instructions?: string;
 }
 
 type ConfiguredMcpTool =
@@ -196,7 +197,7 @@ export class AzureResponsesProvider implements AgentProvider {
       : [];
     const request = {
       model: input.model ?? this.config.deployment,
-      instructions: ANALYTICS_INSTRUCTIONS,
+      instructions: this.config.instructions ?? ANALYTICS_INSTRUCTIONS,
       input: responseInput,
       previous_response_id: input.previousResponseId ?? undefined,
       tools: buildResponseTools({

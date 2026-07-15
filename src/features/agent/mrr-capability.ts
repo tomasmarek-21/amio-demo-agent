@@ -11,6 +11,11 @@ const mrrRowSchema = z.object({
   account_domain: z.string().min(1),
   month_start: z.string().regex(/^\d{4}-\d{2}-01$/, "must be YYYY-MM-01"),
   mrr_gross_eur: z.number().nonnegative(),
+  mrr_source: z
+    .enum(["actual", "estimate"])
+    .describe(
+      '"actual" = backed by a real Stripe invoice (paid or open). "estimate" = inferred from previous data when no invoice exists for this month.',
+    ),
   subscription_status: z
     .enum(["active", "past_due", "canceled", "unpaid"])
     .nullable()

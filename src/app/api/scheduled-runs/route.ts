@@ -6,6 +6,10 @@ import { runScheduledWorkflow } from "@/features/scheduled/scheduled-runner";
 const postBodySchema = z.object({
   workflowId: z.string().min(1),
   callbackUrl: z.string().url().optional().nullable(),
+  targetMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "must be YYYY-MM")
+    .optional(),
 });
 
 export async function GET(request: Request) {
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { workflowId, callbackUrl } = parsed.data;
+  const { workflowId, callbackUrl, targetMonth } = parsed.data;
   const workflow = getWorkflow(workflowId);
   if (!workflow) {
     return Response.json({ error: "Workflow not found." }, { status: 404 });
@@ -49,7 +53,8 @@ export async function POST(request: Request) {
     workflow.name,
   );
 
-  void runScheduledWorkflow(session.id, workflowId, callbackUrl ?? null).catch(
+  const targetMonthStart = targetMonth ? `${targetMonth}-01` : undefined;
+  void runScheduledWorkflow(session.id, workflowId, callbackUrl ?? null, targetMonthStart).catch(
     console.error,
   );
 
