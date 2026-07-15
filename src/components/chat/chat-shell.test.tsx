@@ -90,6 +90,17 @@ it("creates a session and streams a response", async () => {
   );
 });
 
+it("selects the session from the ?session URL param", async () => {
+  window.history.pushState({}, "", "?session=session-2");
+  api.listSessions.mockResolvedValue([first, second]);
+
+  render(<ChatShell />);
+
+  await waitFor(() => expect(api.getSession).toHaveBeenCalledWith("session-2"));
+
+  window.history.pushState({}, "", "/");
+});
+
 it("starts a visibly clean conversation", async () => {
   api.listSessions.mockResolvedValue([first]);
   render(<ChatShell />);

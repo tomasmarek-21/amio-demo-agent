@@ -48,15 +48,15 @@ export function ChatShell() {
     useState<ConnectorHealth[] | null>(null);
 
   useEffect(() => {
-    const notionResult = new URLSearchParams(window.location.search).get(
-      "notion",
-    );
+    const params = new URLSearchParams(window.location.search);
+    const notionResult = params.get("notion");
     if (notionResult === "error") {
       setError("Failed to connect Notion. Try the OAuth flow again.");
     }
     if (notionResult) {
       window.history.replaceState({}, "", window.location.pathname);
     }
+    const sessionParam = params.get("session");
     void refreshIntegrations();
     const storedModel = window.localStorage.getItem("amio-agent-model");
     if (storedModel && isAgentModel(storedModel)) {
@@ -75,7 +75,8 @@ export function ChatShell() {
     void listSessions()
       .then(async (items) => {
         setSessions(items);
-        if (items[0]) await selectSession(items[0].id);
+        const initialId = sessionParam ?? items[0]?.id ?? null;
+        if (initialId) await selectSession(initialId);
       })
       .catch((cause) => setError(readableError(cause)));
   }, []);
