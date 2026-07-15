@@ -1,5 +1,5 @@
-import { ChatShell } from "@/components/chat/chat-shell";
+import { AgentShell } from "@/components/agent-shell";
 
 export default function Page() {
-  return <ChatShell />;
+  return <AgentShell />;
 }

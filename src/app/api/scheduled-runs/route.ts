@@ -12,6 +12,17 @@ const postBodySchema = z.object({
     .optional(),
 });
 
+function getCurrentMonthStart(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Prague",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  return `${year}-${month}-01`;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const workflowId = searchParams.get("workflowId");
@@ -22,13 +33,25 @@ export async function GET(request: Request) {
       return Response.json({ error: "Workflow not found." }, { status: 404 });
     }
     const sessions = await chatRepository.listSessionsByWorkflow(workflowId);
-    return Response.json({ sessions });
+    const ctx = { targetMonth: getCurrentMonthStart() };
+    const systemPromptText = workflow.systemPrompt?.(ctx) ?? null;
+    return Response.json({
+      workflow: {
+        id: workflowId,
+        name: workflow.name,
+        n8nWorkflowUrl: workflow.n8nWorkflowUrl ?? null,
+        capabilities: workflow.capabilities,
+        systemPromptText,
+      },
+      sessions,
+    });
   }
 
   const workflows = Object.entries(SCHEDULED_WORKFLOWS).map(([id, w]) => ({
     id,
     name: w.name,
     n8nWorkflowUrl: w.n8nWorkflowUrl ?? null,
+    capabilities: w.capabilities,
   }));
   return Response.json({ workflows });
 }

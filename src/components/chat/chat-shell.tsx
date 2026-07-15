@@ -183,7 +183,7 @@ export function ChatShell() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[var(--amio-bg)] text-[var(--amio-text)] md:h-screen md:flex-row">
+    <main className="flex h-full min-h-0 flex-col bg-[var(--amio-bg)] text-[var(--amio-text)] md:flex-row">
       <SessionSidebar
         sessions={sessions}
         activeId={activeId}
