@@ -53,6 +53,8 @@ export async function runScheduledWorkflow(
     capturedSlackMessage = slackMessage;
   });
 
+  console.log(`[scheduled-run] starting workflowId=${workflowId} sessionId=${sessionId} targetMonth=${resolvedMonth}`);
+
   const caps = new Set<Capability>(workflow.capabilities);
 
   const mcpTools = [
@@ -124,26 +126,38 @@ export async function runScheduledWorkflow(
     env.AZURE_OPENAI_DEPLOYMENT,
   );
 
+  console.log(`[scheduled-run] tools ready — mcpTools=${mcpTools.length} functionTools=${functionTools.length}`);
+
   let status: "completed" | "failed" = "completed";
+  let runError: string | null = null;
   try {
     for await (const event of runner.run(sessionId, prompt)) {
       if (event.type === "error") {
         status = "failed";
+        runError = event.message;
+        console.error(`[scheduled-run] agent error: ${event.message}`);
         break;
       }
+      if (event.type === "tool_trace") {
+        console.log(`[scheduled-run] tool=${event.toolName} status=${event.status}${event.error ? ` error=${event.error}` : ""}`);
+      }
     }
-  } catch {
+  } catch (err) {
     status = "failed";
+    runError = err instanceof Error ? err.message : String(err);
+    console.error(`[scheduled-run] uncaught error: ${runError}`);
   }
 
+  console.log(`[scheduled-run] finished status=${status} slackMessage=${capturedSlackMessage ? "yes" : "no"} callbackUrl=${callbackUrl ?? "none"}`);
+
   if (callbackUrl) {
-    await fireCallback(callbackUrl, { status, slackMessage: capturedSlackMessage });
+    await fireCallback(callbackUrl, { status, slackMessage: capturedSlackMessage, error: runError });
   }
 }
 
 async function fireCallback(
   url: string,
-  body: { status: "completed" | "failed"; slackMessage: string | null },
+  body: { status: "completed" | "failed"; slackMessage: string | null; error?: string | null },
 ): Promise<void> {
   try {
     await fetch(url, {
