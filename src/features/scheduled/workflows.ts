@@ -36,223 +36,214 @@ Previous month start: ${previousMonthStart}
 
 Your task is to calculate Monthly Recurring Revenue (MRR) for the target month using Stripe and Supabase, then write the results using the \`upsert_agent_mrr\` tool.
 
-Complete the entire workflow independently. Do not stop after collecting the data. Always perform the final upsert unless no valid rows can be calculated.
+Complete the entire workflow independently. Always perform the final upsert unless no valid rows can be calculated.
+
+# Important principles
+
+- Always calculate MRR using historical data that was valid for the target month.
+- Never use the customer's current subscription price if it differs from what was actually billed for the target month.
+- A customer may have multiple qualifying invoices in the same month. Always include every qualifying invoice.
+- The final MRR for an account is the sum of all qualifying invoice contributions for that month.
+- Accuracy is more important than speed.
 
 # MRR definition
 
-For this task, MRR represents the invoice amount normalized to one month based on the invoice's service period.
+For this task, MRR represents invoice revenue normalized to one month.
 
-Use every Stripe invoice that covers the target month, regardless of whether it originates from a recurring subscription or a one-time invoice.
+Include both:
+
+- recurring subscription invoices
+- one-time invoices
+
+Do not exclude invoices simply because they are one-time or not attached to a recurring Stripe subscription.
 
 Use the invoice amount:
 
-1. Use \`total_excluding_tax\` when available.
-2. If \`total_excluding_tax\` is null, use \`subtotal\`.
-3. Always use the amount after discounts and before tax.
-4. Exclude invoices with a negative total.
-5. Exclude fully refunded invoices.
+1. \`total_excluding_tax\`
+2. otherwise \`subtotal\`
 
-Calculate:
+Always use the amount after discounts and before tax.
 
-invoice_mrr = invoice_amount / service_period_months
+Exclude:
+
+- negative invoices
+- fully refunded invoices
+
+If an invoice has a recognizable service period:
+
+months = max(1, round(service_period_days / 30.44))
+
+invoice_mrr = invoice_amount / months
 
 Examples:
 
-- Monthly invoice → divide by 1
-- Quarterly invoice → divide by 3
-- Annual invoice → divide by 12
-- One-time invoice covering one month → divide by 1
+- monthly invoice → divide by 1
+- quarterly invoice → divide by 3
+- annual invoice → divide by 12
 
-Do not exclude invoices simply because they are not recurring subscriptions.
+If an invoice is one-time or its service period cannot be determined reliably:
 
-All final MRR values must be converted to EUR.
+- treat it as covering exactly one month
+- set months = 1
+- include the full invoice amount
+- assign it to the month of \`finalized_at\`
+- if \`finalized_at\` is unavailable, use the invoice creation date
 
-# Step 1 – Find Stripe invoices covering the target month
+Never skip a valid invoice only because its service period is missing or unclear.
 
-Retrieve every Stripe invoice whose service period overlaps with the target month, regardless of whether the invoice originates from a recurring subscription or a one-time invoice.
+# Step 1 – Retrieve invoices
 
-Determine the service period using:
+Retrieve **all** invoices that are relevant for the target month.
 
-1. \`lines[].period.start\` and \`lines[].period.end\`
-2. If line-level periods are unavailable, use the invoice-level period.
+Use invoices that were valid for the target month, **not the customer's current subscription state**.
 
-Include invoices with status:
+An invoice is relevant when:
 
-- \`paid\`
-- \`open\`
+- its service period overlaps the target month, or
+- it has no recognizable service period but was finalized during the target month, or
+- it has no recognizable service period or finalized date but was created during the target month.
 
-Exclude invoices with status:
+Include:
 
-- \`draft\`
-- \`void\`
+- paid
+- open
 
-Also exclude fully refunded invoices and invoices with a negative total.
+Exclude:
 
-For every relevant invoice collect:
+- draft
+- void
+- fully refunded
+- negative invoices
 
-- Stripe invoice ID
-- Stripe customer ID
+Retrieve all pages when pagination is used.
+
+Collect:
+
+- invoice id
+- customer id
 - customer email
 - invoice amount
 - currency
-- service period start
-- service period end
-- invoice status
+- service period (if available)
 - finalized_at
+- created date
+- invoice status
 
-Retrieve all pages when the Stripe tool uses pagination.
+Do not filter by recurring vs one-time invoices.
 
-Do not filter invoices based on Stripe billing type (recurring vs one-time). The invoice service period is the only criterion used for calculating MRR.
+# Step 2 – Calculate invoice MRR
 
-# Step 2 – Normalize invoices to monthly revenue
+For every invoice:
 
-Calculate how many months each invoice covers:
+- if a reliable service period exists, normalize the invoice across that period
+- otherwise treat it as a one-month invoice
 
-months = round(service period length in days / 30.44)
+When multiple records exist for the same service period, prefer:
 
-The minimum value is 1.
+1. paid
+2. open
+3. preview
 
-Examples:
+Never count the same service period twice.
 
-- Monthly subscription → 1 month
-- Annual subscription → 12 months
-- Other billing periods → calculate from the service period
+# Step 3 – Convert to EUR
 
-Calculate:
+If currency is EUR, use the value directly.
 
-invoice_mrr = invoice amount / months
+Otherwise:
 
-# Step 3 – Prioritize actual billed invoices
+- use the invoice-specific exchange rate from Supabase when available
+- otherwise use the latest available rate for the same currency
+- for CZK use 0.041 as the final fallback
+- if another currency has no reliable exchange rate, skip the invoice and report it
 
-For annual or multi-month subscriptions covering the target month, use this priority:
+# Step 4 – Aggregate per account
 
-1. Paid invoice
-2. Open finalized invoice
-3. Upcoming invoice preview only if neither exists
-
-Always prefer an actual billed invoice over a forecast.
-
-Do not count the same subscription period more than once.
-
-# Step 4 – Convert to EUR
-
-If the invoice currency is EUR, use the calculated monthly amount directly.
-
-For any other currency:
-
-- Look up an exchange rate for the specific invoice in Supabase.
-- If none exists, use the most recent available exchange rate for the same currency from Supabase.
-- For CZK only, use \`0.041\` as the final fallback.
-- If no reliable exchange rate exists for another currency, skip the invoice and report it at the end.
-
-# Step 5 – Match invoices to accounts
-
-Extract the domain from the Stripe customer email.
+Extract the domain from the customer email.
 
 Example:
 
 billing@footshop.cz → footshop.cz
 
-Normalize the domain by:
+Normalize it:
 
-- converting it to lowercase
-- trimming whitespace
-- removing a leading \`www.\` if present
+- lowercase
+- trim whitespace
+- remove leading \`www.\`
 
-Use the normalized domain as \`account_domain\`.
+A customer may have multiple qualifying invoices in the same target month.
 
-If multiple invoices belong to the same account, sum all monthly EUR contributions into one value.
+These may include:
 
-For every account calculated from a current Stripe invoice:
+- multiple subscriptions
+- one-time invoices
+- additional invoices
+- invoice adjustments
+
+Always include **every qualifying invoice**.
+
+Never stop after finding the first invoice.
+
+The final account MRR equals the **sum of all qualifying invoice contributions**.
+
+Set:
 
 - \`mrr_source = "actual"\`
 
 Determine \`subscription_status\` from Stripe:
 
-- \`active\`
-- \`past_due\`
-- \`canceled\`
-- \`unpaid\`
+- active
+- past_due
+- canceled
+- unpaid
 
-If no more specific status can be determined, use \`active\`.
+If uncertain, use \`active\`.
 
-# Step 6 – Estimate accounts without a current Stripe invoice
+# Step 5 – Estimate missing accounts
 
-Retrieve from Supabase all account domains that already have a revenue row for the target month.
+Retrieve all account domains that already have a revenue row for the target month.
 
-For every account that exists in Supabase but was not covered by the current Stripe invoices:
+Only after checking **all qualifying Stripe invoices**, estimate the remaining accounts.
 
-A. Look for the customer's most recent past Stripe invoice.
+If a recent past invoice exists:
 
-If its prepaid service period ended less than two months before the target month:
+- reuse its normalized monthly value
+- \`mrr_source = "estimate"\`
 
-- calculate its normalized monthly MRR
-- set \`mrr_source = "estimate"\`
-- preserve the latest known subscription status when possible
-- otherwise use \`active\`
+If the prepaid period ended more than two months before the target month and no newer payment exists:
 
-If its prepaid service period ended more than two months before the target month and no newer payment exists:
+- \`mrr_gross_eur = 0\`
+- \`mrr_source = "estimate"\`
+- \`subscription_status = "canceled"\`
 
-- set \`mrr_gross_eur = 0\`
-- set \`mrr_source = "estimate"\`
-- set \`subscription_status = "canceled"\`
+Otherwise, fall back to the previous month's value stored in Supabase.
 
-B. If no suitable Stripe invoice exists:
+If nothing can be found, skip the account.
 
-Retrieve the previous month's MRR and subscription status from Supabase.
+# Step 6 – Manual accounts
 
-If available:
-
-- reuse the previous MRR
-- set \`mrr_source = "estimate"\`
-- preserve the previous subscription status when available
-- otherwise use \`active\`
-
-C. If no usable information exists anywhere:
-
-Skip the account and include the reason in the final report.
-
-# Step 7 – Add manually billed accounts
-
-Always include these accounts directly without checking Stripe:
+Always include:
 
 - donio.cz
-  - \`mrr_gross_eur = 312.50\`
-  - \`mrr_source = "actual"\`
-  - \`subscription_status = "active"\`
+  - mrr_gross_eur = 312.50
+  - mrr_source = "actual"
+  - subscription_status = "active"
 
-# Step 8 – Prepare the final result
+# Step 7 – Validate
 
-Create exactly one row per account.
+Before writing, verify that:
 
-Each row must contain:
+- every qualifying invoice for the target month was processed
+- customers with multiple invoices have all invoices included
+- one-time invoices were not omitted
+- invoice amounts were normalized correctly
+- duplicate service periods were not counted twice
 
-- \`account_domain\`
-- \`month_start\`
-- \`mrr_gross_eur\`
-- \`mrr_source\`
-- \`subscription_status\`
-
-Requirements:
-
-- \`month_start\` must equal \`${targetMonth}\`
-- round \`mrr_gross_eur\` to two decimal places
-- \`mrr_gross_eur\` must never be negative
-- \`mrr_source\` must be either \`actual\` or \`estimate\`
-- \`subscription_status\` must be one of:
-  - \`active\`
-  - \`past_due\`
-  - \`canceled\`
-  - \`unpaid\`
-  - \`null\`
-- do not include duplicate account domains
-- do not include rows with null MRR values
-
-# Step 9 – Write the results
+# Step 8 – Write
 
 Call \`upsert_agent_mrr\` exactly once.
 
-Pass all calculated rows in a single tool call using this structure:
+Pass all rows in one tool call:
 
 {
   "rows": [
@@ -266,24 +257,34 @@ Pass all calculated rows in a single tool call using this structure:
   ]
 }
 
-Do not call the write tool separately for individual accounts.
+# Step 9 – Slack
 
-Only report that the data was written if the tool call succeeds.
+Do not send a Slack message after every execution.
+
+Only send one if there is something requiring human attention, for example:
+
+- skipped invoices
+- missing exchange rates
+- suspected churn
+- failed writes
+- unusually large MRR changes
+- inconsistent Stripe data
+- anything requiring manual investigation
+
+If everything completed successfully without noteworthy findings, do not send a Slack message.
 
 # Step 10 – Final report
 
-After the upsert, report:
+Report:
 
-- Target month
-- Total MRR
-- Number of accounts processed
-- Number of rows successfully upserted
-- Count of \`actual\` accounts
-- Count of \`estimate\` accounts
-- Accounts set to zero due to suspected churn
-- Accounts skipped and why
-- Invoices skipped because no exchange rate was available
-- Whether the upsert completed successfully`.trim();
+- target month
+- total MRR
+- number of processed accounts
+- number of upserted rows
+- actual vs estimate counts
+- suspected churn accounts
+- skipped accounts and invoices
+- whether the upsert succeeded`.trim();
 }
 
 export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
