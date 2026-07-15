@@ -39,3 +39,27 @@ it("returns sessions with the most recently updated first", async () => {
     [first.id, second.id],
   );
 });
+
+it("createScheduledSession stores workflowId on the session", async () => {
+  const session = await repository.createScheduledSession("weekly-mrr-report", "https://n8n/webhook/abc");
+  expect(session.workflowId).toBe("weekly-mrr-report");
+});
+
+it("listSessionsByWorkflow returns only sessions for the given workflowId", async () => {
+  await repository.createScheduledSession("weekly-mrr-report", null);
+  vi.setSystemTime(new Date("2026-07-02T10:00:01Z"));
+  await repository.createScheduledSession("weekly-mrr-report", null);
+  await repository.createSession(); // normal conversation session
+  const list = await repository.listSessionsByWorkflow("weekly-mrr-report");
+  expect(list).toHaveLength(2);
+  expect(list.every((s) => s.workflowId === "weekly-mrr-report")).toBe(true);
+});
+
+it("listSessionsByWorkflow returns sessions newest first", async () => {
+  const first = await repository.createScheduledSession("weekly-mrr-report", null, "First");
+  vi.setSystemTime(new Date("2026-07-02T10:00:01Z"));
+  const second = await repository.createScheduledSession("weekly-mrr-report", null, "Second");
+  const list = await repository.listSessionsByWorkflow("weekly-mrr-report");
+  expect(list[0].id).toBe(second.id);
+  expect(list[1].id).toBe(first.id);
+});

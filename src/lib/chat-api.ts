@@ -93,6 +93,7 @@ interface SerializedSession {
   id: string;
   title: string;
   lastResponseId: string | null;
+  workflowId: string | null;
   createdAt: string;
   updatedAt: string;
 }

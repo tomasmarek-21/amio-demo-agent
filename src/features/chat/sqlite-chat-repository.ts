@@ -30,11 +30,38 @@ export class SqliteChatRepository implements ChatRepository {
       id: randomUUID(),
       title,
       lastResponseId: null,
+      workflowId: null,
       createdAt: now,
       updatedAt: now,
     };
     await this.database.insert(sessions).values(session);
     return session;
+  }
+
+  async createScheduledSession(
+    workflowId: string,
+    _callbackUrl: string | null,
+    title = DEFAULT_SESSION_TITLE,
+  ): Promise<ChatSession> {
+    const now = new Date();
+    const session: ChatSession = {
+      id: randomUUID(),
+      title,
+      lastResponseId: null,
+      workflowId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await this.database.insert(sessions).values({ ...session, workflowId });
+    return session;
+  }
+
+  async listSessionsByWorkflow(workflowId: string): Promise<ChatSession[]> {
+    return this.database
+      .select()
+      .from(sessions)
+      .where(eq(sessions.workflowId, workflowId))
+      .orderBy(desc(sessions.updatedAt)) as unknown as ChatSession[];
   }
 
   async listSessions(): Promise<ChatSession[]> {

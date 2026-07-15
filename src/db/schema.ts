@@ -7,6 +7,8 @@ export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   lastResponseId: text("last_response_id"),
+  workflowId: text("workflow_id"),
+  callbackUrl: text("callback_url"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });

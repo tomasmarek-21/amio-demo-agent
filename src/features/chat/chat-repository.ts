@@ -26,6 +26,39 @@ export class SupabaseChatRepository implements ChatRepository {
     return mapSession(data);
   }
 
+  async createScheduledSession(
+    workflowId: string,
+    callbackUrl: string | null,
+    title = DEFAULT_SESSION_TITLE,
+  ): Promise<ChatSession> {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    const { data, error } = await this.client
+      .from("sessions")
+      .insert({
+        id,
+        title,
+        workflow_id: workflowId,
+        callback_url: callbackUrl,
+        created_at: now,
+        updated_at: now,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapSession(data);
+  }
+
+  async listSessionsByWorkflow(workflowId: string): Promise<ChatSession[]> {
+    const { data, error } = await this.client
+      .from("sessions")
+      .select("*")
+      .eq("workflow_id", workflowId)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapSession);
+  }
+
   async listSessions(): Promise<ChatSession[]> {
     const { data, error } = await this.client
       .from("sessions")
@@ -179,6 +212,7 @@ function mapSession(row: Record<string, unknown>): ChatSession {
     id: row.id as string,
     title: row.title as string,
     lastResponseId: (row.last_response_id as string | null) ?? null,
+    workflowId: (row.workflow_id as string | null) ?? null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };

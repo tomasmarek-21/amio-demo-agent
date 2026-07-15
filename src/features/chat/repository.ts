@@ -16,6 +16,12 @@ export interface CompleteRunInput {
 
 export interface ChatRepository {
   createSession(title?: string): Promise<ChatSession>;
+  createScheduledSession(
+    workflowId: string,
+    callbackUrl: string | null,
+    title?: string,
+  ): Promise<ChatSession>;
+  listSessionsByWorkflow(workflowId: string): Promise<ChatSession[]>;
   listSessions(): Promise<ChatSession[]>;
   getSession(id: string): Promise<SessionDetail | null>;
   addMessage(

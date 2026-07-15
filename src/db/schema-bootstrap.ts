@@ -5,6 +5,7 @@ export function createSchema(sqlite: Database.Database) {
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, last_response_id TEXT,
+      workflow_id TEXT, callback_url TEXT,
       created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS messages (

@@ -5,6 +5,7 @@ export interface ChatSession {
   id: string;
   title: string;
   lastResponseId: string | null;
+  workflowId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
