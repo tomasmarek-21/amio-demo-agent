@@ -212,6 +212,7 @@ export class AzureResponsesProvider implements AgentProvider {
       parallel_tool_calls: false,
       max_tool_calls: 30,
       max_output_tokens: 16_000,
+      truncation: "auto",
       ...(input.reasoningEffort
         ? { reasoning: { effort: input.reasoningEffort } }
         : {}),
