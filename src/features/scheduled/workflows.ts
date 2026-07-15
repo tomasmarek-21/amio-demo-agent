@@ -35,7 +35,7 @@ CRITICAL: Do NOT write any text or explanation. Your only output is tool calls. 
 
 **Stripe:** Call stripe_api_search ONCE with query "invoices" filtered to the billing period overlapping ${targetMonth}–${monthEnd}, status:paid OR status:open. Do NOT call stripe_api_details or stripe_api_read — use only the search results.
 
-**Exchange rates (if non-EUR invoices exist):** Call \`get_exchange_rates\` once to get the latest EUR rates per currency from the payments history. Fallback: CZK = 0.041.
+**Exchange rates (if non-EUR invoices exist):** Use \`get_exchange_rates\` (preferred — no SQL needed) or query the Supabase \`payments\` table for the most recent \`exchange_rate_to_eur\` per currency. Fallback: CZK = 0.041.
 
 ## MRR computation rules (do in your head, no text)
 
@@ -69,7 +69,7 @@ export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
     name: "MRR Agent Run",
     systemPrompt: mrrSystemPrompt,
     prompt: "Proceed with the MRR calculation as described in your instructions.",
-    capabilities: ["stripe", "mrr"],
+    capabilities: ["stripe", "supabase", "mrr"],
     n8nWorkflowUrl: "https://amio2.app.n8n.cloud/workflow/RyHna4xYDrVgvAOI",
   },
   "conversation-quality-check": {
