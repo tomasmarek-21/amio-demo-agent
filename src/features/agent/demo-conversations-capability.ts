@@ -19,7 +19,6 @@ const demoConversationRowSchema = z.object({
     .describe("2–3 sentence summary for warm/hot conversations. null for cold."),
   amio_history_url: z
     .string()
-    .url()
     .describe("Direct link to this conversation in Amio Automate history."),
 });
 
