@@ -14,7 +14,7 @@ import {
   AMIO_DEMO_BOT_ID,
   createAmioConversationsTools,
 } from "@/features/agent/amio-conversations-capability";
-import { createMrrFunctionTool } from "@/features/agent/mrr-capability";
+import { createMrrTools } from "@/features/agent/mrr-capability";
 import { getWorkflow, type Capability } from "./workflows";
 import { createCompleteScheduledRunTool } from "./complete-run-tool";
 
@@ -96,12 +96,10 @@ export async function runScheduledWorkflow(
     ...(caps.has("mrr") &&
     env.SUPABASE_PROJECT_REF &&
     env.SUPABASE_SERVICE_ROLE_KEY
-      ? [
-          createMrrFunctionTool({
-            supabaseUrl: `https://${env.SUPABASE_PROJECT_REF}.supabase.co`,
-            serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
-          }),
-        ]
+      ? createMrrTools({
+          supabaseUrl: `https://${env.SUPABASE_PROJECT_REF}.supabase.co`,
+          serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+        })
       : []),
   ];
 
