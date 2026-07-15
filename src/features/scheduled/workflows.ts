@@ -4,7 +4,8 @@ export type Capability =
   | "supabase"
   | "mrr"
   | "notion"
-  | "amio-conversations";
+  | "amio-conversations"
+  | "demo-conversations";
 
 export interface ScheduledWorkflowContext {
   targetMonth: string; // "YYYY-MM-01"
@@ -401,6 +402,96 @@ Report:
 - whether a Slack message was sent and why`.trim();
 }
 
+function demoConversationsSystemPrompt(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  return `## Today's date is ${today}.
+
+Your task: scan new Amio demo chat conversations since the last recorded one, classify them as cold/warm/hot, and upsert all results to Supabase.
+
+## STEP 1 — Find start timestamp
+
+Query Supabase:
+\`\`\`sql
+SELECT MAX(last_message_at) AS last_seen FROM demo_conversations
+\`\`\`
+
+If the result is null (table is empty), use ${thirtyDaysAgo} as dateFrom.
+Otherwise, use the returned timestamp as dateFrom.
+
+## STEP 2 — Fetch conversations
+
+Call \`amio-fetch-conversation-transcripts\` with:
+- dateFrom: the timestamp from Step 1
+- dateTo: current timestamp (now, ISO 8601 with timezone offset)
+- maxConversations: 200
+- includeSystemEvents: false
+
+## STEP 3 — Classify each conversation
+
+For each conversation returned, read its full transcript and classify it:
+- **cold**: quick or single-turn exchange, low intent, no discussion of pricing, integration, or specific use cases
+- **warm**: multiple turns, exploring capabilities or use cases, genuine interest but not immediately ready to proceed
+- **hot**: actively discussing pricing, requesting a demo or trial, asking about integration or deployment steps, explicit purchase intent
+
+For **warm** and **hot** conversations, write a 2–3 sentence insight:
+1. What was the customer asking about?
+2. How did the agent respond — was it helpful or did it fall short?
+
+For **cold** conversations, set insight to null.
+
+## STEP 4 — Construct amio_history_url
+
+For each conversation, build the URL using:
+https://automate.amio.io/bots/6950785430289573256/history?dateFrom={DAY_START}&dateTo={NEXT_DAY_END}&contactId={CONTACT_ID}
+
+Where:
+- DAY_START = start of day of first_message_at in Europe/Prague timezone, URL-encoded ISO 8601
+- NEXT_DAY_END = end of day after last_message_at in Europe/Prague timezone, URL-encoded ISO 8601
+
+Example — conversation on 2026-07-13, contactId 7483096310095826390:
+https://automate.amio.io/bots/6950785430289573256/history?dateFrom=2026-07-13T00%3A00%3A00%2B02%3A00&dateTo=2026-07-14T23%3A59%3A59%2B02%3A00&contactId=7483096310095826390
+
+## STEP 5 — Upsert all rows
+
+Call \`upsert_demo_conversations\` exactly once with all classified rows.
+
+Each row must include:
+- contact_id
+- first_message_at (ISO 8601 with timezone offset)
+- last_message_at (ISO 8601 with timezone offset)
+- initial_request (first customer message text, or null if unavailable)
+- classification ("cold", "warm", or "hot")
+- insight (2–3 sentence string for warm/hot; null for cold)
+- amio_history_url
+
+## STEP 6 — Call complete_scheduled_run
+
+Call \`complete_scheduled_run\` with slackMessage formatted as Slack mrkdwn.
+
+If there are any warm or hot conversations, format the message as:
+
+*Demo Chat Scan — {dateFrom date} → ${today}*
+{hot_count} hot 🔥 · {warm_count} warm 👀 · {cold_count} cold
+
+*Hot leads:*
+• <{amio_history_url}|View conversation> — _{insight}_
+
+*Warm leads:*
+• <{amio_history_url}|View conversation> — _{insight}_
+
+If there are zero warm and zero hot conversations, pass slackMessage = null.
+
+## STEP 7 — Final report
+
+After calling complete_scheduled_run, summarize:
+- Date range scanned
+- Total conversations found and their classification breakdown (cold/warm/hot counts)
+- Upsert result ({ upserted: N })
+- Whether a Slack message was sent`.trim();
+}
+
 export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
   "weekly-mrr-report": {
     name: "MRR Agent Run",
@@ -415,6 +506,13 @@ export const SCHEDULED_WORKFLOWS: Record<string, ScheduledWorkflow> = {
       "Analyze AMIO conversations from the last 7 days. Identify the top 3 failure patterns (unresolved requests, escalations, low-confidence answers). Call complete_scheduled_run with a brief Slack summary of findings.",
     capabilities: ["amio-conversations"],
     n8nWorkflowUrl: undefined,
+  },
+  "demo-conversations-scan": {
+    name: "Demo Conversations Scan",
+    systemPrompt: () => demoConversationsSystemPrompt(),
+    prompt: "Proceed with the demo conversations scan as described in your instructions.",
+    capabilities: ["amio-conversations", "supabase", "demo-conversations"],
+    n8nWorkflowUrl: undefined, // set after importing workflow into n8n
   },
 };
 
