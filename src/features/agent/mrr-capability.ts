@@ -11,6 +11,13 @@ const mrrRowSchema = z.object({
   account_domain: z.string().min(1),
   month_start: z.string().regex(/^\d{4}-\d{2}-01$/, "must be YYYY-MM-01"),
   mrr_gross_eur: z.number().nonnegative(),
+  account_name: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Company or customer display name from Stripe (customer.name or customer.description). Always include when available — used as the display name in the dashboard. The server will fall back to historical records if omitted.",
+    ),
   mrr_source: z
     .enum(["actual", "estimate"])
     .describe(
