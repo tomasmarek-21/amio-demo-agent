@@ -74,8 +74,9 @@ export function ChatShell() {
     }
     void listSessions()
       .then(async (items) => {
-        setSessions(items);
-        const initialId = sessionParam ?? items[0]?.id ?? null;
+        const conversationItems = items.filter((s) => s.workflowId === null);
+        setSessions(conversationItems);
+        const initialId = sessionParam ?? conversationItems[0]?.id ?? null;
         if (initialId) await selectSession(initialId);
       })
       .catch((cause) => setError(readableError(cause)));
