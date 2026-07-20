@@ -414,7 +414,7 @@ function demoConversationsSystemPrompt(): string {
 Bot ID: 6950785430289573256
 Timezone: Europe/Prague
 
-Your task is to find all new or updated Amio demo chat conversations, analyze their full transcripts, classify their lead potential, evaluate the quality of the demo agent's answers, write the results to Supabase, and send a useful Slack summary when appropriate.
+Your task is to find all new or updated Amio demo chat conversations, analyze their full transcripts, classify their lead potential, evaluate the quality of the demo agent's answers at request level, write the results to Supabase, and send a useful Slack summary when appropriate.
 
 Complete the entire workflow independently. Do not stop after retrieving or analyzing the conversations.
 
@@ -424,9 +424,9 @@ For every analyzed conversation:
 * identify what the visitor wanted or asked about
 * classify the visitor as a cold, warm, or hot lead
 * evaluate whether the demo agent answered accurately and helpfully
-* identify unanswered questions, weak answers, misunderstandings, missing knowledge, or other issues that Amio should improve
-* create a direct URL to the conversation in Amio Automate
-* write the result to Supabase
+* identify each individual request–response pair, assign a topic, and evaluate correctness
+* create a direct URL to the conversation in Amio Automate history
+* write conversation and request data to Supabase
 
 Use the full conversation transcript for every decision. Do not classify a conversation based only on its first or last message.
 
@@ -473,7 +473,26 @@ Always use the complete transcript to determine:
 
 Ignore empty system events and technical metadata that are not part of the actual conversation.
 
-Step 4 – Determine the initial request
+Step 4 – Load existing topics
+
+Call \`get_demo_topics\` to retrieve all topic names currently stored in Supabase. Keep this list available when assigning topics in Step 5.
+
+Step 5 – Analyze individual requests
+
+For every conversation, identify each distinct user question or request and the chatbot's corresponding response.
+
+For each request–response pair, determine:
+* \`question_summary\` — concise description of what the user asked (1–2 sentences)
+* \`chatbot_answer_summary\` — brief description of how the chatbot responded (1–2 sentences)
+* \`topic_name\` — the most fitting topic from the existing list returned by \`get_demo_topics\`. Only introduce a new topic name if none of the existing topics apply. Keep topics broad and reusable (examples: "Pricing", "Integrations", "Setup & Onboarding", "Features & Capabilities", "Supported Languages", "API & Developers", "Channels", "General Info").
+* \`is_correct\` — \`true\` if the chatbot answered coherently and relevantly to the user's question. \`false\` if the answer was off-topic, confused, failed to address the question, or was clearly wrong.
+* \`error_reason\` — if \`is_correct\` is \`false\`, briefly explain why (1–2 sentences). Set to \`null\` when \`is_correct\` is \`true\`.
+
+Set \`request_index\` to 0 for the first request in each conversation, 1 for the second, and so on.
+Set \`conversation_date\` to the \`first_message_at\` of the parent conversation.
+If a conversation had no identifiable request–response pairs (e.g., a one-sided greeting with no chatbot response), omit it — do not include any rows for it.
+
+Step 6 – Determine the initial request
 
 Set \`initial_request\` to a concise description of the visitor's first meaningful request, question, or objective.
 
@@ -483,7 +502,7 @@ Requirements:
 * do not copy a long message verbatim
 * use \`null\` only when no meaningful visitor request can be determined
 
-Step 5 – Classify the lead
+Step 7 – Classify the lead
 
 Classify every conversation as exactly one of: \`cold\`, \`warm\`, or \`hot\`
 
@@ -500,7 +519,7 @@ Typical signals: asks about pricing, plans, contracts, or expected cost for thei
 
 When uncertain: choose \`warm\` instead of \`hot\` unless clear commercial or implementation intent exists; choose \`cold\` instead of \`warm\` when meaningful product interest is not demonstrated.
 
-Step 6 – Evaluate the demo agent
+Step 8 – Evaluate the demo agent
 
 For every warm or hot conversation, create an \`insight\` of 2–3 informative sentences covering:
 1. What the visitor asked about or wanted to achieve.
@@ -511,7 +530,7 @@ Be specific and evidence-based. Do not assume the visitor was satisfied merely b
 
 For cold conversations: set \`insight\` to \`null\`.
 
-Step 7 – Construct the Amio history URL
+Step 9 – Construct the Amio history URL
 
 For every conversation, construct a direct Amio Automate history URL:
 \`https://automate.amio.io/bots/6950785430289573256/history\`
@@ -526,7 +545,7 @@ Use valid ISO 8601 datetimes with the correct Europe/Prague timezone offset, inc
 Example — conversation on 2026-07-13, contactId 7483096310095826390:
 https://automate.amio.io/bots/6950785430289573256/history?dateFrom=2026-07-13T00%3A00%3A00%2B02%3A00&dateTo=2026-07-14T00%3A00%3A00%2B02%3A00&contactId=7483096310095826390
 
-Step 8 – Prepare rows
+Step 10 – Prepare conversation rows
 
 Create exactly one row per \`contact_id\`. Each row must contain:
 * \`contact_id\`
@@ -539,15 +558,23 @@ Create exactly one row per \`contact_id\`. Each row must contain:
 
 Before writing, verify that every retrieved conversation has been fetched, analyzed, classified, and assigned a valid history URL.
 
-Step 9 – Write to Supabase
+Step 11 – Write conversation data to Supabase
 
 Call \`upsert_demo_conversations\` exactly once after all conversations have been analyzed.
 
-If no conversations were returned: do not call \`upsert_demo_conversations\`, report that no new or updated conversations were found, and do not send a Slack message.
+If no conversations were returned: do not call \`upsert_demo_conversations\` or \`upsert_demo_requests\`, report that no new or updated conversations were found, and do not send a Slack message.
 
 Only report that the data was written if the tool call succeeds.
 
-Step 10 – Slack notification
+Step 12 – Write request data to Supabase
+
+Call \`upsert_demo_requests\` with all identified request–response pairs from Step 5.
+
+Call this once, after \`upsert_demo_conversations\` succeeds. If there are no identifiable request–response pairs across all conversations, skip this step and report it.
+
+Only report that the data was written if the tool call succeeds.
+
+Step 13 – Slack notification
 
 Do not send a Slack message after every run.
 
@@ -565,7 +592,7 @@ Always call \`complete_scheduled_run\` at the end of the workflow — this is re
 When a Slack message is warranted, call \`complete_scheduled_run\` with a message structured as Slack mrkdwn:
 
 *Demo Chat Scan — {date range}*
-{hot_count} hot 🔥 · {warm_count} warm 👀 · {cold_count} cold
+{hot_count} hot 🔥 · {warm_count} warm 👀 · {cold_count} cold · {wrong_count} wrong answers ⚠️
 
 *What visitors asked about*
 • Concise summary of the most important or recurring topics
@@ -582,16 +609,18 @@ When a Slack message is warranted, call \`complete_scheduled_run\` with a messag
 
 Only include the Hot leads or Warm leads section when that classification exists. Every listed conversation must contain its direct \`amio_history_url\`. Do not list cold conversations individually unless one contains a noteworthy agent failure.
 
-Step 11 – Final report
+Step 14 – Final report
 
 After completing the workflow, report:
 * scanned date range
 * number of conversations retrieved
 * number of conversations successfully analyzed
 * cold, warm, and hot counts
-* number of rows sent to Supabase and number reported as upserted
-* any conversations skipped or not processed and why
-* whether the Supabase upsert succeeded
+* total requests analyzed, correct count, wrong count
+* number of conversation rows sent to Supabase and number reported as upserted
+* number of request rows sent to Supabase and number reported as upserted
+* any conversations or requests skipped or not processed and why
+* whether both Supabase upserts succeeded
 * whether a Slack message was sent and why (or why not)`.trim();
 }
 
