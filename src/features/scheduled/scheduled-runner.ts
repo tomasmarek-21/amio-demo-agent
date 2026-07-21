@@ -35,6 +35,7 @@ export async function runScheduledWorkflow(
   workflowId: string,
   callbackUrl: string | null,
   targetMonth?: string, // "YYYY-MM-01"; defaults to current Prague month
+  userPromptOverride?: string,
 ): Promise<void> {
   const workflow = getWorkflow(workflowId);
   if (!workflow) return;
@@ -46,8 +47,9 @@ export async function runScheduledWorkflow(
   const ctx = { targetMonth: resolvedMonth };
 
   const instructions = workflow.systemPrompt?.(ctx);
-  const prompt =
+  const defaultPrompt =
     typeof workflow.prompt === "function" ? workflow.prompt(ctx) : workflow.prompt;
+  const prompt = userPromptOverride ?? defaultPrompt;
 
   let capturedSlackMessage: string | null = null;
   const completeRunTool = createCompleteScheduledRunTool(({ slackMessage }) => {

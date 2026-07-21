@@ -10,6 +10,7 @@ const postBodySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}$/, "must be YYYY-MM")
     .optional(),
+  userPromptOverride: z.string().min(1).optional(),
 });
 
 function getCurrentMonthStart(): string {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { workflowId, callbackUrl, targetMonth } = parsed.data;
+  const { workflowId, callbackUrl, targetMonth, userPromptOverride } = parsed.data;
   const workflow = getWorkflow(workflowId);
   if (!workflow) {
     return Response.json({ error: "Workflow not found." }, { status: 404 });
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   );
 
   const targetMonthStart = targetMonth ? `${targetMonth}-01` : undefined;
-  void runScheduledWorkflow(session.id, workflowId, callbackUrl ?? null, targetMonthStart).catch(
+  void runScheduledWorkflow(session.id, workflowId, callbackUrl ?? null, targetMonthStart, userPromptOverride).catch(
     console.error,
   );
 
